@@ -17,6 +17,9 @@ what it controls. See `.env.example` at the project root for the template.
 | Variable | Required | Default | What it does |
 |---|---|---|---|
 | `SYNC_MODE` | No | `incremental` | Default run mode when an invocation payload doesn't specify `mode`. Valid: `incremental`, `full`. |
+| `SYNC_SOURCE` | No | `jira` | Default data source when an invocation payload doesn't specify `source`. Valid: `jira`, `github`. |
+| `JIRA_ENABLED` | No | `true` | When `false`, Jira ingestion/config is skipped and its credentials are not required. |
+| `GITHUB_ENABLED` | No | `false` | When `true`, GitHub ingestion is enabled and its credentials become required. |
 | `NODE_ENV` | No | `production` | Standard Node flag. Only affects minor dev niceties here. |
 | `LOG_LEVEL` | No | `info` | `debug` \| `info` \| `warn` \| `error`. Turn up to `debug` when investigating. |
 
@@ -70,14 +73,44 @@ what you want on Atlassian Cloud.
 
 ---
 
+## GitHub (SECRET for token)
+
+Required only when `GITHUB_ENABLED=true`. See
+[github-setup.md](github-setup.md) for step-by-step setup.
+
+| Variable | Required | Default | What it does |
+|---|---|---|---|
+| `GITHUB_TOKEN` | Yes | — | Personal Access Token (classic). Needs `repo` scope for private repos or `public_repo` for public. |
+| `GITHUB_REPO_OWNER` | Yes | — | Org or user that owns the repo, e.g. `acme-inc`. |
+| `GITHUB_REPO_NAME` | Yes | — | Repo name, e.g. `platform`. |
+| `GITHUB_INCLUDE_COMMITS` | No | `true` | Whether to index commits on active branches. |
+| `GITHUB_INCLUDE_PULL_REQUESTS` | No | `true` | Whether to index pull requests, reviews, and conversation comments. |
+| `GITHUB_INCLUDE_ISSUES` | No | `true` | Whether to index issues and their comments. |
+| `GITHUB_STALE_BRANCH_DAYS` | No | `90` | Branches with a last commit older than this are skipped. Must be > 0. |
+| `GITHUB_MAX_BRANCHES` | No | `200` | Safety cap on how many active branches we traverse per run. |
+| `GITHUB_INCREMENTAL_LOOKBACK_MINUTES` | No | reuses `INCREMENTAL_LOOKBACK_MINUTES` | Overlap window used by the GitHub incremental sync. |
+| `GITHUB_COMMIT_MESSAGE_MAX_TOKENS` | No | `500` | Max tokens per commit-message chunk. |
+| `GITHUB_PR_BODY_MAX_TOKENS` | No | `500` | Max tokens per PR-body chunk. |
+| `GITHUB_PR_REVIEW_MAX_TOKENS` | No | `600` | Max tokens per grouped review chunk. |
+| `GITHUB_PR_CONVERSATION_GROUP_SIZE` | No | `3` | Max conversation comments grouped into one chunk. |
+| `GITHUB_ISSUE_BODY_MAX_TOKENS` | No | `500` | Max tokens per issue-body chunk. |
+| `GITHUB_ISSUE_COMMENT_GROUP_SIZE` | No | `3` | Max issue comments grouped into one chunk. |
+
+> At least one of `GITHUB_INCLUDE_COMMITS`, `GITHUB_INCLUDE_PULL_REQUESTS`,
+> or `GITHUB_INCLUDE_ISSUES` must be `true` when GitHub is enabled.
+
+---
+
 ## MongoDB Atlas Vector Search (SECRET for URI)
 
 | Variable | Required | Default | What it does |
 |---|---|---|---|
 | `MONGODB_URI` | Yes | — | Full connection string including username/password. |
 | `MONGODB_DATABASE` | No | `intentera` | Database name where chunks are stored. |
-| `MONGODB_COLLECTION` | No | `rag_chunks` | Collection name. |
-| `MONGODB_VECTOR_INDEX` | No | `vector_index` | Name of the Atlas Vector Search index. Must match what you created in the Atlas UI. |
+| `MONGODB_COLLECTION` | No | `rag_chunks` | Jira collection name. |
+| `MONGODB_VECTOR_INDEX` | No | `vector_index` | Name of the Jira Atlas Vector Search index. Must match what you created in the Atlas UI. |
+| `MONGODB_GITHUB_COLLECTION` | No | `rag_chunks_github` | GitHub collection name (separate from Jira). |
+| `MONGODB_GITHUB_VECTOR_INDEX` | No | `vector_index_github` | Name of the GitHub Atlas Vector Search index. Must match what you created in the Atlas UI. |
 
 ---
 
@@ -86,7 +119,7 @@ what you want on Atlassian Cloud.
 | Variable | Required | Default | What it does |
 |---|---|---|---|
 | `REDIS_URL` | Yes | — | Full URL, e.g. `redis://localhost:6379` or `rediss://:TOKEN@host:6379`. |
-| `REDIS_KEY_PREFIX` | No | `intentera:sync:` | Prefix used for the two keys IntentEra writes (`state`, `lock`). |
+| `REDIS_KEY_PREFIX` | No | `intentera:sync:` | Prefix used for the keys IntentEra writes. State and locks are now scoped per source — e.g. `intentera:sync:state:jira` and `intentera:sync:state:github`. |
 
 ---
 
@@ -135,6 +168,15 @@ enough for budget enforcement.
 |---|---|---|
 | `RETRIEVAL_DEFAULT_TOP_K` | `8` | Result count when the caller doesn't specify `topK`. |
 | `RETRIEVAL_MAX_TOP_K` | `25` | Hard cap to prevent absurdly large requests. |
+
+At retrieval time you can also pass `source` on the request body:
+
+- `"jira"` — queries the Jira vector collection (default when Jira is enabled).
+- `"github"` — queries the GitHub vector collection.
+- `"both"` — splits `topK` between both collections, runs the searches
+  in parallel, and returns the best combined results sorted by score.
+  Each result is tagged with its `source` and, for GitHub, its
+  `entityType` (`commit`, `pullRequest`, or `issue`).
 
 ---
 

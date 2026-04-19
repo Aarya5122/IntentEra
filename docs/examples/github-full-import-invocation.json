@@ -1,0 +1,5 @@
+{
+  "mode": "full",
+  "source": "github",
+  "entityTypes": ["commits", "pullRequests", "issues"]
+}

@@ -1,0 +1,13 @@
+{
+  "Name": "intentera-github-incremental-30m",
+  "Description": "Runs IntentEra GitHub incremental sync every 30 minutes.",
+  "ScheduleExpression": "rate(30 minutes)",
+  "State": "ENABLED",
+  "Targets": [
+    {
+      "Id": "intentera-ingest-lambda",
+      "Arn": "arn:aws:lambda:us-east-1:123456789012:function:intentera-ingest",
+      "Input": "{\"source\":\"github\",\"mode\":\"incremental\"}"
+    }
+  ]
+}

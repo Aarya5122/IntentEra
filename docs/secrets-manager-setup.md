@@ -37,10 +37,18 @@ where your Lambdas will run (top-right region picker).
      "MONGODB_DATABASE": "intentera",
      "MONGODB_COLLECTION": "rag_chunks",
      "MONGODB_VECTOR_INDEX": "vector_index",
+     "MONGODB_GITHUB_COLLECTION": "rag_chunks_github",
+     "MONGODB_GITHUB_VECTOR_INDEX": "vector_index_github",
      "REDIS_URL": "rediss://:password@redis.example.com:6379",
-     "REDIS_KEY_PREFIX": "intentera:sync:"
+     "REDIS_KEY_PREFIX": "intentera:sync:",
+     "GITHUB_TOKEN": "ghp_replace-with-personal-access-token"
    }
    ```
+
+   If you are running **GitHub-only**, you can drop the Jira-specific
+   keys (`JIRA_*`, `CONFLUENCE_*`) and set `JIRA_ENABLED=false`. If you
+   are running **Jira-only**, you can drop `GITHUB_TOKEN` and the
+   `MONGODB_GITHUB_*` keys.
 
    You can also include non-secret config keys here if you prefer one
    central place for everything.

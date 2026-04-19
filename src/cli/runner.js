@@ -9,10 +9,23 @@
  *
  * Usage (from the project root):
  *
+ *   # Jira (default source)
  *   node src/cli/runner.js incremental
  *   node src/cli/runner.js full
  *   node src/cli/runner.js query "How did we fix the login bug?" [--topK 5] [--project PROJ]
- *   node src/cli/runner.js state    # prints the current Redis sync state
+ *
+ *   # GitHub
+ *   node src/cli/runner.js incremental --source github
+ *   node src/cli/runner.js full        --source github
+ *   node src/cli/runner.js full        --source github --entityTypes commits,pullRequests
+ *   node src/cli/runner.js query "Who reviewed the auth PR?" --source github --repo octocat/hello-world
+ *
+ *   # Retrieval across both sources
+ *   node src/cli/runner.js query "SSO rollout timeline" --source both
+ *
+ *   # State inspection (source-scoped)
+ *   node src/cli/runner.js state --source jira
+ *   node src/cli/runner.js state --source github
  *
  * The CLI loads `.env` automatically via dotenv. It also tears down Redis
  * and Mongo connections at the end so Node can exit cleanly.
@@ -20,17 +33,19 @@
 
 /* eslint-disable no-console */
 
-// Load environment variables from a local .env file if present. In Lambda
-// this is a no-op because the file does not exist — the SDK picks up env
-// vars from the Lambda configuration instead.
 require('dotenv').config();
 
 const { handler: ingestHandler } = require('../handler/ingest');
 const { handler: retrieveHandler } = require('../handler/retrieve');
-const { buildIngestionDeps, teardown } = require('../utils/wiring');
+const {
+  buildIngestionDeps,
+  buildGithubIngestionDeps,
+  teardown,
+} = require('../utils/wiring');
 
 /**
- * Parses simple `--flag value` pairs from process.argv.
+ * Parses simple `--flag value` pairs from process.argv. Boolean flags are
+ * set to `"true"` when followed by another flag or nothing.
  * @param {string[]} args
  * @returns {{positional: string[], flags: Record<string,string>}}
  */
@@ -61,40 +76,63 @@ function printJson(value) {
 }
 
 /**
- * Simulates an EventBridge / manual invocation of the ingestion Lambda.
+ * Simulates an ingestion invocation. `source` is added to the event payload
+ * so the handler picks the right pipeline.
  * @param {"incremental"|"full"} mode
+ * @param {"jira"|"github"} source
+ * @param {Record<string,string>} flags
  */
-async function runIngestion(mode) {
-  const event = mode ? { mode } : {};
-  // We mimic the Lambda context lightly so code that logs `awsRequestId`
-  // still works during local dev.
+async function runIngestion(mode, source, flags) {
+  /** @type {Record<string, any>} */
+  const event = { mode, source };
+  // GitHub-only: optional per-run entity type filter.
+  if (source === 'github' && flags.entityTypes) {
+    event.entityTypes = flags.entityTypes.split(',').map((s) => s.trim()).filter(Boolean);
+  }
   const context = { awsRequestId: `local-${Date.now()}` };
   const result = await ingestHandler(event, context);
   printJson(result);
 }
 
 /**
- * Simulates an API Gateway retrieval invocation.
+ * Simulates an API Gateway retrieval invocation. Supports Jira-style and
+ * GitHub-style filter flags at the same time — the vector store ignores
+ * keys it doesn't understand.
+ *
  * @param {string} query
  * @param {Record<string,string>} flags
  */
 async function runQuery(query, flags) {
+  const source = (flags.source || 'jira').toLowerCase();
+  /** @type {Record<string, any>} */
   const filters = {};
+
+  // Jira-side filters.
   if (flags.project) filters.projectKey = flags.project;
   if (flags.ticket) filters.ticketKey = flags.ticket;
   if (flags.sourceType) filters.sourceType = flags.sourceType.split(',');
   if (flags.labels) filters.labels = flags.labels.split(',');
 
+  // GitHub-side filters.
+  if (flags.repo) filters.repoFullName = flags.repo;
+  if (flags.entityType) filters.entityType = flags.entityType;
+  if (flags.entityKey) filters.entityKey = flags.entityKey;
+  if (flags.branch) filters.branches = flags.branch.split(',');
+  if (flags.filePath) filters.filePaths = flags.filePath.split(',');
+  if (flags.pr) filters.prNumber = Number(flags.pr);
+  if (flags.issue) filters.issueNumber = Number(flags.issue);
+  if (flags.commit) filters.commitSha = flags.commit;
+
   const event = {
     body: JSON.stringify({
       query,
+      source,
       topK: flags.topK ? Number(flags.topK) : undefined,
       filters,
     }),
   };
   const context = { awsRequestId: `local-${Date.now()}` };
   const response = await retrieveHandler(event, context);
-  // Parse the proxy-envelope body so the CLI output is easy to read.
   try {
     response.body = JSON.parse(response.body);
   } catch (_err) {
@@ -104,12 +142,64 @@ async function runQuery(query, flags) {
 }
 
 /**
- * Prints the current Redis sync state. Useful for debugging.
+ * Prints the current Redis sync state for the requested source. Useful for
+ * debugging "did the last run actually finish?".
+ * @param {"jira"|"github"} source
  */
-async function printState() {
-  const { redisState } = await buildIngestionDeps();
-  const state = await redisState.readState();
+async function printState(source) {
+  const deps = source === 'github'
+    ? await buildGithubIngestionDeps()
+    : await buildIngestionDeps();
+  const state = await deps.redisState.readState();
   printJson(state);
+}
+
+/**
+ * Prints usage help.
+ */
+function printHelp() {
+  console.log(
+    [
+      'Usage: node src/cli/runner.js <command> [options]',
+      '',
+      'Commands:',
+      '  incremental                          Simulate an incremental sync invocation.',
+      '  full                                 Simulate a forced full-import invocation.',
+      '  query "..."                          Simulate a retrieval call.',
+      '  state                                Print the current Redis sync state.',
+      '',
+      'Common options:',
+      '  --source jira|github|both            jira (default) for ingest/state,',
+      '                                       any of the three for query.',
+      '  --topK N                             Override default topK for query.',
+      '',
+      'GitHub ingestion options:',
+      '  --entityTypes commits,pullRequests,issues   Restrict types for this run.',
+      '',
+      'Jira query filters:',
+      '  --project KEY                        Filter by project key.',
+      '  --ticket KEY                         Filter by ticket key.',
+      '  --sourceType a,b                     Filter by source types.',
+      '  --labels l1,l2                       Require ALL of these labels.',
+      '',
+      'GitHub query filters:',
+      '  --repo owner/name                    Filter by repo.',
+      '  --entityType commit|pullRequest|issue',
+      '  --entityKey pr:42 | commit:<sha> | issue:15',
+      '  --branch main,release/1.0',
+      '  --filePath src/auth.ts,src/server.ts',
+      '  --pr 42                              Filter by PR number.',
+      '  --issue 15                           Filter by issue number.',
+      '  --commit <sha>                       Filter by commit SHA.',
+      '',
+      'Examples:',
+      '  node src/cli/runner.js incremental',
+      '  node src/cli/runner.js full --source github',
+      '  node src/cli/runner.js query "who fixed SSO?" --source both --topK 10',
+      '  node src/cli/runner.js state --source github',
+      '',
+    ].join('\n')
+  );
 }
 
 /**
@@ -119,39 +209,41 @@ async function main() {
   const { positional, flags } = parseArgs(process.argv.slice(2));
   const [command, ...rest] = positional;
 
-  // Default to incremental if the caller provided no command.
   const mode = command || 'incremental';
+  const source = (flags.source || 'jira').toLowerCase();
+  if (!['jira', 'github', 'both'].includes(source)) {
+    console.error(`error: --source must be one of jira|github|both (got "${flags.source}")`);
+    process.exitCode = 1;
+    return;
+  }
 
   try {
     switch (mode) {
       case 'incremental':
-      case 'full':
-        await runIngestion(mode);
+      case 'full': {
+        if (source === 'both') {
+          throw new Error('ingestion commands require --source jira or --source github');
+        }
+        await runIngestion(mode, /** @type {"jira"|"github"} */ (source), flags);
         break;
+      }
       case 'query': {
         const query = rest.join(' ') || flags.query;
         if (!query) throw new Error('query command requires a query string');
         await runQuery(query, flags);
         break;
       }
-      case 'state':
-        await printState();
+      case 'state': {
+        if (source === 'both') {
+          throw new Error('state command requires --source jira or --source github');
+        }
+        await printState(/** @type {"jira"|"github"} */ (source));
         break;
+      }
       case 'help':
       case '--help':
       case '-h':
-        console.log(
-          'Usage: node src/cli/runner.js <full|incremental|query|state>\n\n' +
-          '  incremental         Simulate the EventBridge incremental sync event.\n' +
-          '  full                Simulate a forced full-import invocation.\n' +
-          '  query "..."         Simulate an API Gateway retrieval call.\n' +
-          '     --topK N           Override default topK\n' +
-          '     --project KEY      Filter by project key\n' +
-          '     --ticket KEY       Filter by ticket key\n' +
-          '     --sourceType a,b   Filter by source types (comma-separated)\n' +
-          '     --labels l1,l2     Require all of these labels\n' +
-          '  state               Print the current Redis sync state.\n'
-        );
+        printHelp();
         break;
       default:
         throw new Error(`Unknown command "${mode}"`);
@@ -164,8 +256,6 @@ async function main() {
   }
 }
 
-// Only run main when this file is executed directly, not when required in
-// tests.
 if (require.main === module) {
   main();
 }

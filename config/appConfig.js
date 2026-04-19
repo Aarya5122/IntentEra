@@ -25,6 +25,7 @@ let cached = null;
 
 /**
  * @typedef {Object} JiraConfig
+ * @property {boolean} enabled
  * @property {string} baseUrl
  * @property {string} email
  * @property {string} apiToken
@@ -48,8 +49,33 @@ let cached = null;
  * @typedef {Object} MongoConfig
  * @property {string} uri
  * @property {string} database
- * @property {string} collection
- * @property {string} vectorIndex
+ * @property {string} collection                Jira chunks collection.
+ * @property {string} vectorIndex               Atlas vector index for jira collection.
+ * @property {string} githubCollection          GitHub chunks collection (separate partition).
+ * @property {string} githubVectorIndex         Atlas vector index for github collection.
+ */
+
+/**
+ * @typedef {Object} GithubConfig
+ * @property {boolean} enabled          Top-level on/off switch for GitHub ingestion.
+ * @property {string}  token            PAT used for REST + GraphQL calls.
+ * @property {string}  repoOwner        e.g. "octocat".
+ * @property {string}  repoName         e.g. "hello-world".
+ * @property {boolean} includeCommits
+ * @property {boolean} includePullRequests
+ * @property {boolean} includeIssues
+ * @property {number}  staleBranchDays  A branch is "active" when its tip commit is newer than this many days.
+ * @property {number}  maxBranches      Safety cap on how many active branches we iterate per run.
+ * @property {number}  commitMessageMaxTokens
+ * @property {number}  commitFilesMaxTokens
+ * @property {number}  prBodyMaxTokens
+ * @property {number}  prBodyOverlapTokens
+ * @property {number}  prReviewMaxTokens
+ * @property {number}  prCommentGroupSize
+ * @property {number}  issueBodyMaxTokens
+ * @property {number}  issueCommentGroupSize
+ * @property {string}  graphqlEndpoint  Usually https://api.github.com/graphql.
+ * @property {string}  restEndpoint     Usually https://api.github.com.
  */
 
 /**
@@ -84,11 +110,13 @@ let cached = null;
 /**
  * @typedef {Object} AppConfig
  * @property {"incremental"|"full"} defaultMode
+ * @property {"jira"|"github"} defaultSource
  * @property {string} nodeEnv
  * @property {string} logLevel
  * @property {number} incrementalLookbackMinutes
  * @property {JiraConfig} jira
  * @property {ConfluenceConfig} confluence
+ * @property {GithubConfig} github
  * @property {MongoConfig} mongo
  * @property {RedisConfig} redis
  * @property {OpenAIConfig} openai
@@ -170,18 +198,38 @@ function buildConfig() {
     );
   }
 
+  // Resolve default SOURCE too: which source the ingest Lambda / CLI assumes
+  // when the event does not explicitly specify one. Defaults to "jira" to
+  // preserve backward compatibility with the original project.
+  const rawSource = (process.env.SYNC_SOURCE || 'jira').toLowerCase();
+  if (rawSource !== 'jira' && rawSource !== 'github') {
+    throw new Error(
+      `SYNC_SOURCE must be "jira" or "github", got "${rawSource}"`
+    );
+  }
+
+  // Each source has an `enabled` flag. This controls whether its credentials
+  // are validated at config-load time. GitHub-only deployments can switch
+  // JIRA_ENABLED=false and never supply Jira credentials, and vice versa.
+  const jiraEnabled = readBool('JIRA_ENABLED', true);
+  const githubEnabled = readBool('GITHUB_ENABLED', false);
+
   /** @type {AppConfig} */
   const cfg = {
     defaultMode: /** @type {"incremental"|"full"} */ (rawMode),
+    defaultSource: /** @type {"jira"|"github"} */ (rawSource),
     nodeEnv: readString('NODE_ENV', { fallback: 'production' }),
     logLevel: readString('LOG_LEVEL', { fallback: 'info' }).toLowerCase(),
 
     incrementalLookbackMinutes: readNumber('INCREMENTAL_LOOKBACK_MINUTES', 60),
 
     jira: {
-      baseUrl: readString('JIRA_BASE_URL', { required: true }).replace(/\/+$/, ''),
-      email: readString('JIRA_EMAIL', { required: true }),
-      apiToken: readString('JIRA_API_TOKEN', { required: true }),
+      enabled: jiraEnabled,
+      // Credentials are only required when the source is enabled. This keeps
+      // GitHub-only deployments from needing Jira creds and vice versa.
+      baseUrl: readString('JIRA_BASE_URL', { required: jiraEnabled }).replace(/\/+$/, ''),
+      email: readString('JIRA_EMAIL', { required: jiraEnabled }),
+      apiToken: readString('JIRA_API_TOKEN', { required: jiraEnabled }),
       projectKeys: readList('JIRA_PROJECT_KEYS'),
       issueTypes: readList('JIRA_ISSUE_TYPES'),
       statuses: readList('JIRA_STATUSES'),
@@ -196,11 +244,47 @@ function buildConfig() {
       // because Atlassian Cloud commonly reuses the same credentials.
       baseUrl: (
         readString('CONFLUENCE_BASE_URL') ||
-        `${readString('JIRA_BASE_URL')}/wiki`
+        (readString('JIRA_BASE_URL') ? `${readString('JIRA_BASE_URL')}/wiki` : '')
       ).replace(/\/+$/, ''),
       email: readString('CONFLUENCE_EMAIL') || readString('JIRA_EMAIL'),
       apiToken:
         readString('CONFLUENCE_API_TOKEN') || readString('JIRA_API_TOKEN'),
+    },
+
+    github: {
+      enabled: githubEnabled,
+      // The PAT is required only when GitHub ingestion is enabled. We keep it
+      // in Secrets Manager in production.
+      token: readString('GITHUB_TOKEN', { required: githubEnabled }),
+      repoOwner: readString('GITHUB_REPO_OWNER', { required: githubEnabled }),
+      repoName: readString('GITHUB_REPO_NAME', { required: githubEnabled }),
+      includeCommits: readBool('GITHUB_INCLUDE_COMMITS', true),
+      includePullRequests: readBool('GITHUB_INCLUDE_PULL_REQUESTS', true),
+      includeIssues: readBool('GITHUB_INCLUDE_ISSUES', true),
+      // "Active" = branch tip committed within this many days. GitHub has no
+      // first-class "stale" flag so we derive it from the tip's commit date.
+      staleBranchDays: readNumber('GITHUB_STALE_BRANCH_DAYS', 90),
+      // Safety cap so a misconfigured monorepo with thousands of branches
+      // cannot blow up a Lambda run.
+      maxBranches: readNumber('GITHUB_MAX_BRANCHES', 50),
+      // Chunking knobs for GitHub entities — separate from Jira knobs because
+      // GitHub content (short commit messages, long PR conversations) has
+      // different shape.
+      commitMessageMaxTokens: readNumber('GITHUB_COMMIT_MESSAGE_MAX_TOKENS', 400),
+      commitFilesMaxTokens: readNumber('GITHUB_COMMIT_FILES_MAX_TOKENS', 400),
+      prBodyMaxTokens: readNumber('GITHUB_PR_BODY_MAX_TOKENS', 500),
+      prBodyOverlapTokens: readNumber('GITHUB_PR_BODY_OVERLAP_TOKENS', 50),
+      prReviewMaxTokens: readNumber('GITHUB_PR_REVIEW_MAX_TOKENS', 600),
+      prCommentGroupSize: readNumber('GITHUB_PR_COMMENT_GROUP_SIZE', 3),
+      issueBodyMaxTokens: readNumber('GITHUB_ISSUE_BODY_MAX_TOKENS', 500),
+      issueCommentGroupSize: readNumber('GITHUB_ISSUE_COMMENT_GROUP_SIZE', 3),
+      // Endpoints are overridable so enterprise GitHub can be supported later.
+      graphqlEndpoint: readString('GITHUB_GRAPHQL_ENDPOINT', {
+        fallback: 'https://api.github.com/graphql',
+      }),
+      restEndpoint: readString('GITHUB_REST_ENDPOINT', {
+        fallback: 'https://api.github.com',
+      }),
     },
 
     mongo: {
@@ -208,6 +292,16 @@ function buildConfig() {
       database: readString('MONGODB_DATABASE', { fallback: 'intentera' }),
       collection: readString('MONGODB_COLLECTION', { fallback: 'rag_chunks' }),
       vectorIndex: readString('MONGODB_VECTOR_INDEX', { fallback: 'vector_index' }),
+      // Separate collection + vector index for GitHub so Jira and GitHub
+      // chunks never get mixed in a single `$vectorSearch` call. Each index
+      // must be created manually in the Atlas UI; we just reference the
+      // chosen names here.
+      githubCollection: readString('MONGODB_GITHUB_COLLECTION', {
+        fallback: 'rag_chunks_github',
+      }),
+      githubVectorIndex: readString('MONGODB_GITHUB_VECTOR_INDEX', {
+        fallback: 'vector_index_github',
+      }),
     },
 
     redis: {
@@ -248,6 +342,35 @@ function buildConfig() {
   if (cfg.retrieval.defaultTopK > cfg.retrieval.maxTopK) {
     throw new Error(
       'RETRIEVAL_DEFAULT_TOP_K must be <= RETRIEVAL_MAX_TOP_K'
+    );
+  }
+  if (cfg.github.enabled) {
+    if (cfg.github.staleBranchDays <= 0) {
+      throw new Error('GITHUB_STALE_BRANCH_DAYS must be > 0');
+    }
+    if (cfg.github.maxBranches <= 0) {
+      throw new Error('GITHUB_MAX_BRANCHES must be > 0');
+    }
+    if (!cfg.github.includeCommits && !cfg.github.includePullRequests && !cfg.github.includeIssues) {
+      throw new Error(
+        'GitHub ingestion is enabled but all entity types ' +
+        '(GITHUB_INCLUDE_COMMITS, GITHUB_INCLUDE_PULL_REQUESTS, GITHUB_INCLUDE_ISSUES) ' +
+        'are disabled — nothing to index'
+      );
+    }
+  }
+  // If the default source is github but github is disabled, fail fast —
+  // otherwise the ingest Lambda would later throw a less obvious error.
+  if (cfg.defaultSource === 'github' && !cfg.github.enabled) {
+    throw new Error(
+      'SYNC_SOURCE=github but GITHUB_ENABLED is false. ' +
+      'Set GITHUB_ENABLED=true or change SYNC_SOURCE.'
+    );
+  }
+  if (cfg.defaultSource === 'jira' && !cfg.jira.enabled) {
+    throw new Error(
+      'SYNC_SOURCE=jira but JIRA_ENABLED is false. ' +
+      'Set JIRA_ENABLED=true or change SYNC_SOURCE.'
     );
   }
 

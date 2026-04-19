@@ -91,6 +91,7 @@ Optionally also set:
 | Key | Value | When to use |
 |---|---|---|
 | `SYNC_MODE` | `full` | Temporary flag — every scheduled run does a full import. Usually leave unset. |
+| `SYNC_SOURCE` | `github` | Default this Lambda to the GitHub pipeline when the event payload omits `source`. Only needed for single-source deployments. |
 | `INCREMENTAL_LOOKBACK_MINUTES` | `60` | Override the default 60-minute overlap. |
 
 ### Attach the IAM permission for Secrets Manager
@@ -139,6 +140,25 @@ imported via the AWS CLI:
 ```bash
 aws scheduler create-schedule --cli-input-json file://docs/examples/eventbridge-rule.json
 ```
+
+### Add a second rule for GitHub (if `GITHUB_ENABLED=true`)
+
+The **same** ingestion Lambda handles both sources — just create a
+second EventBridge schedule whose target input is `{"source":"github"}`:
+
+- Schedule name: `intentera-github-incremental-30m`
+- Target: the same `intentera-ingest` Lambda
+- Payload: `{"source":"github","mode":"incremental"}`
+
+Or use the CLI with the ready-made template:
+
+```bash
+aws scheduler create-schedule --cli-input-json file://docs/examples/github-eventbridge-rule.json
+```
+
+See [`examples/github-eventbridge-rule.json`](examples/github-eventbridge-rule.json)
+and [`examples/github-full-import-invocation.json`](examples/github-full-import-invocation.json)
+for the exact shapes.
 
 ---
 
@@ -192,6 +212,7 @@ Note the **Invoke URL** (e.g.
 ### Test from curl
 
 ```bash
+# Jira (default source)
 curl -X POST "https://abc123.execute-api.us-east-1.amazonaws.com/retrieve" \
   -H "Content-Type: application/json" \
   -d '{
@@ -199,9 +220,26 @@ curl -X POST "https://abc123.execute-api.us-east-1.amazonaws.com/retrieve" \
     "topK": 5,
     "filters": { "projectKey": "PROJ" }
   }'
+
+# GitHub-only query
+curl -X POST "https://abc123.execute-api.us-east-1.amazonaws.com/retrieve" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "Who reviewed the SSO PR?",
+    "source": "github",
+    "topK": 5,
+    "filters": { "repoFullName": "acme-inc/platform", "entityType": "pullRequest" }
+  }'
+
+# Combined retrieval across both sources
+curl -X POST "https://abc123.execute-api.us-east-1.amazonaws.com/retrieve" \
+  -H "Content-Type: application/json" \
+  -d '{ "query": "SSO rollout timeline", "source": "both", "topK": 10 }'
 ```
 
 You should get the same JSON shape you saw from the Lambda Test tab.
+Every result is tagged with `source` (`jira` | `github`), and GitHub
+items additionally include `entityType` and `repoFullName`.
 
 ### Locking down the endpoint (optional but recommended)
 

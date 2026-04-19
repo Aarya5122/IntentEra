@@ -1,0 +1,3 @@
+{
+  "body": "{\n  \"query\": \"Who reviewed the SSO login PR and what did they flag?\",\n  \"topK\": 8,\n  \"source\": \"github\",\n  \"filters\": {\n    \"repoFullName\": \"acme-inc/platform\",\n    \"entityType\": \"pullRequest\",\n    \"branches\": [\"main\"],\n    \"filePaths\": [\"src/auth/sso.ts\"]\n  }\n}"
+}

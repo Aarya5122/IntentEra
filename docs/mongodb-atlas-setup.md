@@ -102,6 +102,28 @@ MONGODB_COLLECTION=rag_chunks
 
 ---
 
+## 6b. Create the GitHub collection (only if GITHUB_ENABLED=true)
+
+IntentEra keeps GitHub chunks in a **separate collection** from Jira so
+each source has its own vector index and you can query them
+independently.
+
+1. In Atlas → **Browse Collections** → use the same `intentera` database.
+2. Click **"Create Collection"**.
+3. Collection name: `rag_chunks_github`.
+4. Click **"Create"**.
+
+These match the defaults in `.env.example`:
+
+```
+MONGODB_GITHUB_COLLECTION=rag_chunks_github
+MONGODB_GITHUB_VECTOR_INDEX=vector_index_github
+```
+
+You will create the vector index for this collection in the next step.
+
+---
+
 ## 7. Create the Vector Search index (the important part)
 
 1. Inside the `rag_chunks` collection, click the **"Search Indexes"** tab.
@@ -132,6 +154,40 @@ MONGODB_COLLECTION=rag_chunks
 
 The index takes 1–3 minutes to build. Wait for its status to go from
 `BUILDING` (orange) to `ACTIVE` (green) before running your first query.
+
+### 7b. GitHub vector index (only if GITHUB_ENABLED=true)
+
+Repeat the steps above on the **`rag_chunks_github`** collection using
+the JSON below (note the GitHub-specific filter fields):
+
+- **Index name:** `vector_index_github`
+- **JSON:**
+
+  ```json
+  {
+    "fields": [
+      {
+        "type": "vector",
+        "path": "embedding",
+        "numDimensions": 1536,
+        "similarity": "cosine"
+      },
+      { "type": "filter", "path": "entityKey" },
+      { "type": "filter", "path": "entityType" },
+      { "type": "filter", "path": "sourceType" },
+      { "type": "filter", "path": "repoFullName" },
+      { "type": "filter", "path": "metadata.branches" },
+      { "type": "filter", "path": "metadata.filePaths" },
+      { "type": "filter", "path": "metadata.labels" },
+      { "type": "filter", "path": "metadata.prNumber" },
+      { "type": "filter", "path": "metadata.issueNumber" },
+      { "type": "filter", "path": "metadata.commitSha" }
+    ]
+  }
+  ```
+
+Wait for this index to reach `ACTIVE` status before running GitHub
+retrievals.
 
 > **If you use a different embedding model**, update `numDimensions` to
 > match the model's output size:

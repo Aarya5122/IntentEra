@@ -62,11 +62,16 @@ Available commands:
 
 | Command | What it does |
 |---|---|
-| `incremental` *(default)* | Runs an incremental sync — fetches Jira changes since the last checkpoint. |
-| `full` | Forces a full import — re-indexes every ticket in scope. |
+| `incremental` *(default)* | Runs an incremental sync — fetches changes since the last checkpoint. |
+| `full` | Forces a full import — re-indexes every entity in scope. |
 | `query "<natural language>"` | Runs a retrieval query against the current index. |
 | `state` | Prints the current Redis sync state (read-only). |
 | `help` | Prints usage. |
+
+Every command accepts `--source jira` (default) or `--source github` to
+select the pipeline. The retrieval command additionally supports
+`--source both` to query Jira and GitHub together. See the
+"GitHub" section below.
 
 ---
 
@@ -191,6 +196,15 @@ Available query flags:
 | `--ticket KEY` | Restrict to one ticket (useful for "summarise PROJ-17"). |
 | `--sourceType a,b` | Restrict to certain chunk source types. Valid values: `metadata`, `description`, `comments`, `linkedIssues`, `attachment`, `confluence`. |
 | `--labels l1,l2` | Require all listed labels on the ticket. |
+| `--source jira\|github\|both` | Which data source(s) to query. Default `jira`. |
+| `--repo owner/name` | *GitHub only.* Filter by repository full name. |
+| `--entityType commit\|pullRequest\|issue` | *GitHub only.* Filter to a single entity type. |
+| `--entityKey pr:42` | *GitHub only.* Filter to one entity key (commit:`<sha>` / pr:`<n>` / issue:`<n>`). |
+| `--branch name` | *GitHub commits only.* Comma-separated list of branches. |
+| `--filePath path` | *GitHub only.* Comma-separated list of file paths touched. |
+| `--pr N` | *GitHub PRs only.* Filter by PR number. |
+| `--issue N` | *GitHub issues only.* Filter by issue number. |
+| `--commit SHA` | *GitHub commits only.* Filter by commit SHA. |
 
 ### Output
 
@@ -229,20 +243,53 @@ for readability:
 
 ## 7. Inspect the sync state
 
+Sync state is now scoped **per source**, so pass `--source`:
+
 ```bash
-node src/cli/runner.js state
+node src/cli/runner.js state --source jira
+node src/cli/runner.js state --source github
 ```
 
-Shows the Redis JSON you can also see in
-[`examples/redis-state.json`](examples/redis-state.json). Fields you care
-about most:
+For Jira, the shape is documented in
+[`examples/redis-state.json`](examples/redis-state.json); for GitHub, see
+[`examples/redis-state-github.json`](examples/redis-state-github.json).
+Fields you care about most:
 
 - `status` — `"idle"` is healthy.
 - `failureReason` — `null` is healthy.
 - `lastIncrementalStartAt` — the anchor used to compute the next lookback
   window.
-- `knownTicketKeys` — the set of tickets currently indexed. Shrinks when a
-  ticket is moved out of scope.
+- `knownTicketKeys` (Jira) / `knownEntityIds` (GitHub) — the set of
+  entities currently indexed. Shrinks when something moves out of scope.
+
+---
+
+## 7b. GitHub quickstart
+
+If `GITHUB_ENABLED=true` in your `.env`, you can run the GitHub pipeline
+identically to Jira — just pass `--source github`:
+
+```bash
+# First run: full import, commits only (fast smoke test)
+node src/cli/runner.js full --source github --entityTypes commits
+
+# Full import for every type
+node src/cli/runner.js full --source github
+
+# Later runs
+node src/cli/runner.js incremental --source github
+
+# Inspect state
+node src/cli/runner.js state --source github
+
+# Query GitHub only, or both sources at once
+node src/cli/runner.js query "who reviewed the auth PR?" \
+  --source github --repo acme-inc/platform --pr 42
+node src/cli/runner.js query "SSO rollout timeline" --source both --topK 10
+```
+
+See [github-setup.md](github-setup.md) for token and configuration
+details.
 
 ---
 
@@ -305,7 +352,10 @@ If the Redis state ever gets into a weird place during development, you
 can wipe it with `redis-cli`:
 
 ```bash
-docker exec -it intentera-redis redis-cli DEL intentera:sync:state intentera:sync:lock
+# Jira state
+docker exec -it intentera-redis redis-cli DEL intentera:sync:state:jira intentera:sync:lock:jira
+# GitHub state
+docker exec -it intentera-redis redis-cli DEL intentera:sync:state:github intentera:sync:lock:github
 ```
 
 The next `incremental` run will detect the missing state and upgrade to a

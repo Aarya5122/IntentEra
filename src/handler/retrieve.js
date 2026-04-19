@@ -14,11 +14,22 @@
  *   {
  *     "query":   "How did we fix the login bug in July?",
  *     "topK":    8,                           // optional
+ *     "source":  "jira" | "github" | "both",  // optional, default jira
  *     "filters": {                            // optional
+ *       // Jira filters:
  *       "projectKey": "PROJ",
  *       "sourceType": ["description","comments"],
  *       "ticketKey":  "PROJ-123",
- *       "labels":     ["auth","ssr"]
+ *       "labels":     ["auth","ssr"],
+ *       // GitHub filters:
+ *       "repoFullName": "octocat/hello-world",
+ *       "entityType":   "pullRequest",
+ *       "entityKey":    "pr:42",
+ *       "branches":     ["main","release/1.0"],
+ *       "filePaths":    ["src/auth.ts"],
+ *       "prNumber":     42,
+ *       "issueNumber":  15,
+ *       "commitSha":    "abcd..."
  *     }
  *   }
  *
@@ -91,15 +102,21 @@ async function handler(event, context) {
 
   const retrieval = new RetrievalHandler({
     embedder: deps.embedder,
+    jiraVectorStore: deps.jiraVectorStore,
+    githubVectorStore: deps.githubVectorStore,
     vectorStore: deps.vectorStore,
     retrievalCfg: deps.cfg.retrieval,
     logger: deps.logger,
   });
 
   try {
+    // Default source follows the same "jira if enabled, else github" rule as
+    // the config so a github-only deployment works out of the box.
+    const defaultSource = deps.cfg.jira.enabled ? 'jira' : 'github';
     const result = await retrieval.retrieve({
       query: body.query,
       topK: body.topK,
+      source: body.source || defaultSource,
       filters: body.filters,
     });
     return envelope(200, result);

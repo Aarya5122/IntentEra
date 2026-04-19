@@ -1,0 +1,21 @@
+{
+  "lastFullImportAt": "2026-04-15T04:00:00.000Z",
+  "lastIncrementalStartAt": "2026-04-19T19:00:00.000Z",
+  "lastIncrementalCompletedAt": "2026-04-19T19:05:11.042Z",
+  "mode": "incremental",
+  "status": "idle",
+  "failureReason": null,
+  "schemaVersion": 1,
+  "knownEntityIds": {
+    "commit": ["commit:9fceb02", "commit:1a2b3c4"],
+    "pullRequest": ["pr:41", "pr:42"],
+    "issue": ["issue:15", "issue:17"]
+  },
+  "knownCommitShas": ["9fceb02d6bd...", "1a2b3c4d5e6..."],
+  "knownPullRequestNumbers": [41, 42],
+  "knownIssueNumbers": [15, 17],
+  "branchCheckpoints": {
+    "main": "2026-04-19T18:45:22.000Z",
+    "release/1.4": "2026-04-18T11:02:09.000Z"
+  }
+}

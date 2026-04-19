@@ -12,16 +12,27 @@ you see — entries are indexed by the exact text the CLI or Lambda prints.
 Set `LOG_LEVEL=debug` (in `.env` locally, or as a Lambda env var). You'll
 get every retry attempt, every embedding batch, and every Redis command.
 
-### 2. Inspect the Redis state
+### 2. Inspect the Redis state (per source)
 
 ```bash
-node src/cli/runner.js state
+# Jira
+node src/cli/runner.js state --source jira
+# GitHub
+node src/cli/runner.js state --source github
 ```
 
 If `status === "failed"` or `failureReason` is non-null, the previous run
 crashed and left a breadcrumb for you. Incremental runs keep retrying the
 same window from the last successful checkpoint, so you generally don't
 need to "clear" anything manually.
+
+State and locks are stored under per-source keys:
+
+- `intentera:sync:state:jira` / `intentera:sync:lock:jira`
+- `intentera:sync:state:github` / `intentera:sync:lock:github`
+
+A legacy `intentera:sync:state` key (no source suffix) is migrated to the
+Jira key automatically on first read.
 
 ---
 
@@ -117,6 +128,91 @@ expected over time — the orchestrator logs and skips. No action needed.
 
 ---
 
+## GitHub errors
+
+### `401 Unauthorized` on any GitHub call
+
+- `GITHUB_TOKEN` is missing, revoked, or expired. Regenerate at
+  [github.com/settings/tokens](https://github.com/settings/tokens) and
+  update `.env` or the Secrets Manager secret.
+- The token you created is a **fine-grained** token but the project is
+  configured for a classic PAT scope. Switch to a classic PAT with
+  `repo` (private) or `public_repo` (public) scope.
+
+### `403 Forbidden` on `/repos/<owner>/<name>` or any sub-resource
+
+- The token's GitHub user cannot see the repo (private repo, SSO not
+  granted, or token missing `repo` scope).
+- Fix via GitHub UI → token settings → enable SSO / add `repo` scope →
+  regenerate.
+
+### `403 rate limit exceeded` or `x-ratelimit-remaining: 0`
+
+GitHub caps authenticated calls at **5,000 requests/hour per token**.
+The client already respects `x-ratelimit-remaining` (soft-throttling
+below 100 remaining) and the `retry-after` header on 429s. Options if
+this is still biting you:
+
+- Narrow the branch scope with a smaller `GITHUB_STALE_BRANCH_DAYS` or
+  a lower `GITHUB_MAX_BRANCHES`.
+- Disable the heaviest entity type for a run: `--entityTypes
+  pullRequests,issues` (skip commits).
+- Split full imports across multiple hours.
+
+### `422 Validation failed` on the commits endpoint
+
+Usually means the branch name in the `?sha=<branch>` query param is
+wrong (e.g. typo, or the branch was deleted between the GraphQL ref
+lookup and the commit stream). The orchestrator logs and continues; no
+action needed for one-off failures.
+
+### Empty `entitiesProcessed.commit` despite active branches
+
+1. Check `GITHUB_INCLUDE_COMMITS=true`.
+2. Check `GITHUB_STALE_BRANCH_DAYS` is high enough. If all your branches
+   are older than 90 days, you'll get zero commits on the default.
+3. Run `node src/cli/runner.js state --source github | jq '.branchCheckpoints'`
+   — if empty, the active-branch listing returned nothing; raise the
+   stale-days cutoff and retry.
+
+### GitHub chunks written into the Jira collection
+
+If `rag_chunks_github.countDocuments({}) === 0` but `rag_chunks` is
+growing when you run GitHub ingestion, one of these is true:
+
+- `MONGODB_GITHUB_COLLECTION` is unset and something is defaulting to
+  the Jira collection — it should default to `rag_chunks_github`.
+- You manually wired `buildGithubIngestionDeps` to use the Jira store.
+  Revert that.
+- Both collection names resolve to the same string. Check with
+  `env | grep MONGODB_`.
+
+### Wrong repo indexed
+
+Check `GITHUB_REPO_OWNER` and `GITHUB_REPO_NAME` match exactly what the
+GitHub URL shows (case sensitive for forks/orgs with mixed case). Then
+either force a full import, OR drop the GitHub collection and re-run
+(`db.rag_chunks_github.deleteMany({})`).
+
+### Branches you expect to see are missing
+
+The "active branches" heuristic only includes branches whose **tip
+commit** is within `GITHUB_STALE_BRANCH_DAYS`. Long-lived release
+branches with no recent commits will be dropped silently. Either:
+
+- Increase `GITHUB_STALE_BRANCH_DAYS` (e.g. to 365).
+- Force a push of a no-op commit (not recommended).
+
+### `secondary rate limit` errors
+
+These fire when too many concurrent requests hit GitHub (different from
+the primary 5k/hr cap). The client backs off automatically with
+exponential retry. If you see them on every run, raise your per-page
+pagination (`per_page=100`) so fewer round-trips are needed — that's
+the default but make sure you haven't overridden it.
+
+---
+
 ## MongoDB errors
 
 ### `MongoServerSelectionError: connect ECONNREFUSED`
@@ -152,8 +248,17 @@ Either:
 - The index doesn't exist — see
   [mongodb-atlas-setup.md](mongodb-atlas-setup.md) §7.
 - The index name doesn't match `MONGODB_VECTOR_INDEX` (default
-  `vector_index`). Fix one or the other.
+  `vector_index`) or, for the GitHub collection,
+  `MONGODB_GITHUB_VECTOR_INDEX` (default `vector_index_github`). Fix
+  whichever side is wrong.
 - The index is still `BUILDING` — wait for it to turn `ACTIVE`.
+
+### GitHub retrieval returns zero results but `rag_chunks_github` has data
+
+Most likely the **GitHub** vector index hasn't been created yet. Repeat
+the steps in [mongodb-atlas-setup.md](mongodb-atlas-setup.md) §7b on the
+`rag_chunks_github` collection. Remember: a search index on the Jira
+collection does NOT apply to the GitHub collection.
 
 ### `WriteError: document would exceed the maximum BSON size (16 MB)`
 
@@ -191,15 +296,20 @@ The Lambda is not in the VPC that ElastiCache is in. See
 
 ### `another sync run appears to be in progress; skipping`
 
-A lock key (`intentera:sync:lock`) is held. This is intentional
-protection against overlapping runs. Wait for the TTL to expire (15
-minutes by default) or manually clear:
+A per-source lock key is held. This is intentional protection against
+overlapping runs. Wait for the TTL to expire (15 minutes by default) or
+manually clear the specific source you need:
 
 ```bash
-docker exec -it intentera-redis redis-cli DEL intentera:sync:lock
+# Jira
+docker exec -it intentera-redis redis-cli DEL intentera:sync:lock:jira
+# GitHub
+docker exec -it intentera-redis redis-cli DEL intentera:sync:lock:github
 ```
 
-Only do the manual delete if you are sure no run is actually in progress.
+Only do the manual delete if you are sure no run is actually in
+progress. Jira and GitHub have independent locks so you can always
+clear one without affecting the other.
 
 ### `sync state is corrupt JSON; resetting to defaults`
 
@@ -267,6 +377,45 @@ secret's ARN. See
 
 ---
 
+## Multi-source retrieval issues
+
+### `source: "both"` returns only Jira (or only GitHub) results
+
+Two possible causes:
+
+1. The **other** source's vector store failed to build. Look in the
+   retrieve Lambda logs for `githubVectorStore is not configured` or
+   `Jira vector store is not configured`. The usual fix is that
+   `GITHUB_ENABLED=false` (or `JIRA_ENABLED=false`) is being set
+   accidentally in Lambda env vars and overriding Secrets Manager.
+2. The other source's index is still `BUILDING`. Check Atlas.
+
+If both checks pass, it may simply be that the question has no
+semantically similar content in one of the collections — `both`
+returns best-matching chunks regardless of which side they come from.
+Try a deliberately cross-source query like `"when did ticket PROJ-17's
+PR merge?"` to verify.
+
+### `source: "github"` / `"jira"` rejected with `is not configured`
+
+You requested a source whose vector store was never built. Enable it:
+
+- For GitHub: set `GITHUB_ENABLED=true` and restart the Lambda (or
+  re-run the CLI).
+- For Jira: set `JIRA_ENABLED=true`.
+
+### GitHub results show `repoFullName: null` or wrong `entityType`
+
+This indicates the underlying chunk was written without the expected
+metadata, which usually means the orchestrator was run against the
+wrong vector store. Re-run a GitHub full import to rebuild chunks:
+
+```bash
+node src/cli/runner.js full --source github
+```
+
+---
+
 ## Retrieval quality issues
 
 ### The top result feels unrelated
@@ -300,36 +449,75 @@ v1 `content?expand=body.view` endpoint and rendering HTML instead.
 
 ## "How do I reset everything to a clean slate?"
 
-**Development only:**
+**Development only** — DO NOT run these against a production Mongo /
+Redis. Choose the per-source block you need.
+
+### Reset Jira only
 
 ```bash
-# 1. Wipe Redis state
-docker exec -it intentera-redis redis-cli DEL intentera:sync:state intentera:sync:lock
+# 1. Wipe Jira Redis state + lock (and the legacy key, just in case)
+docker exec -it intentera-redis redis-cli DEL \
+  intentera:sync:state:jira intentera:sync:lock:jira intentera:sync:state
 
-# 2. Wipe Mongo collection
-# Open the Atlas UI → your cluster → Browse Collections → delete all docs, OR:
+# 2. Wipe Jira Mongo chunks
 node -e "
 require('dotenv').config();
 const { MongoClient } = require('mongodb');
 (async () => {
   const c = new MongoClient(process.env.MONGODB_URI);
   await c.connect();
-  const r = await c.db(process.env.MONGODB_DATABASE).collection(process.env.MONGODB_COLLECTION).deleteMany({});
-  console.log('Deleted', r.deletedCount, 'chunks');
+  const r = await c.db(process.env.MONGODB_DATABASE)
+    .collection(process.env.MONGODB_COLLECTION || 'rag_chunks')
+    .deleteMany({});
+  console.log('Deleted', r.deletedCount, 'Jira chunks');
   await c.close();
 })();
 "
 
 # 3. Rebuild
-node src/cli/runner.js full
+node src/cli/runner.js full --source jira
 ```
+
+### Reset GitHub only
+
+```bash
+# 1. Wipe GitHub Redis state + lock
+docker exec -it intentera-redis redis-cli DEL \
+  intentera:sync:state:github intentera:sync:lock:github
+
+# 2. Wipe GitHub Mongo chunks
+node -e "
+require('dotenv').config();
+const { MongoClient } = require('mongodb');
+(async () => {
+  const c = new MongoClient(process.env.MONGODB_URI);
+  await c.connect();
+  const r = await c.db(process.env.MONGODB_DATABASE)
+    .collection(process.env.MONGODB_GITHUB_COLLECTION || 'rag_chunks_github')
+    .deleteMany({});
+  console.log('Deleted', r.deletedCount, 'GitHub chunks');
+  await c.close();
+})();
+"
+
+# 3. Rebuild
+node src/cli/runner.js full --source github
+```
+
+### Reset both at once
+
+Just run both blocks above in sequence — they operate on different
+Redis keys and different Mongo collections, so there's no overlap.
 
 ---
 
 ## Still stuck?
 
+- Work the [verification.md](verification.md) checklist end-to-end —
+  it highlights exactly which check is failing.
 - Re-read the relevant setup guide ([mongodb-atlas-setup.md](mongodb-atlas-setup.md),
   [redis-setup.md](redis-setup.md), [jira-confluence-setup.md](jira-confluence-setup.md),
+  [github-setup.md](github-setup.md),
   [openai-setup.md](openai-setup.md)).
 - Open a GitHub issue with:
   - The command you ran

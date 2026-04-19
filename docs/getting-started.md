@@ -52,8 +52,9 @@ walkthrough below. Here's the at-a-glance list so you know what is coming:
 | **AWS account** | Yes (12-month free tier) | Running the Lambdas, Secrets Manager, EventBridge, API Gateway |
 | **MongoDB Atlas** | Yes (M0 free, but **vector search needs M10+**) | Storing embeddings + doing `$vectorSearch` |
 | **Redis** | Run it locally for free; managed options include Upstash (free tier) and AWS ElastiCache | Sync checkpoint state |
-| **Atlassian Jira** | Yes (if you already have a Jira Cloud account) | Source of ticket data |
+| **Atlassian Jira** | Yes (if you already have a Jira Cloud account) | Source of ticket data (optional — set `JIRA_ENABLED=false` to skip) |
 | **Atlassian Confluence** | Yes (same Atlassian account) | Linked knowledge pages (optional) |
+| **GitHub** | Yes | Second RAG source — commits, pull requests, issues (optional — enable with `GITHUB_ENABLED=true`) |
 | **OpenAI** | Pay-as-you-go (a few cents for testing) | Text embeddings |
 
 > **Heads-up about MongoDB Atlas:** the free M0 tier does **not** support
@@ -120,14 +121,26 @@ up with:
 
 The same token typically works for both Jira and Confluence.
 
-### 4.4. OpenAI
+### 4.4. GitHub *(optional second RAG source)*
+
+If you also want to index a GitHub repository, follow
+**[github-setup.md](github-setup.md)**. You will end up with:
+
+- A classic Personal Access Token (starts with `ghp_...`)
+- The owner/name of the single repo you want to index
+- A second Atlas collection + vector index for GitHub chunks
+
+You can skip this step and enable it later — Jira-only deployments work
+out of the box with `GITHUB_ENABLED=false`.
+
+### 4.5. OpenAI
 
 Follow **[openai-setup.md](openai-setup.md)**. You will end up with:
 
 - An API key (starts with `sk-...`)
 - A chosen embedding model (default: `text-embedding-3-small`)
 
-### 4.5. AWS Secrets Manager *(skip if you are only running locally for now)*
+### 4.6. AWS Secrets Manager *(skip if you are only running locally for now)*
 
 Follow **[secrets-manager-setup.md](secrets-manager-setup.md)** only when you
 deploy to AWS. For local development the `.env` file is enough.
