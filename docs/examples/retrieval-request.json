@@ -1,0 +1,3 @@
+{
+  "body": "{\n  \"query\": \"How did we fix the login bug in July?\",\n  \"topK\": 8,\n  \"filters\": {\n    \"projectKey\": \"PROJ\",\n    \"sourceType\": [\"description\", \"comments\"],\n    \"labels\": [\"auth\"]\n  }\n}"
+}

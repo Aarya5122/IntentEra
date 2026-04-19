@@ -1,190 +1,161 @@
-# IntentEra
+# IntentEra — Jira RAG on AWS Lambda
 
-IntentEra is a **VS Code extension** backed by a **Node.js (Express)** service. It connects **local Git history for selected lines** in a file with **JIRA tickets**, **GitHub pull requests**, and **GitHub issues**, then (in a later phase) uses **RAG** and **OpenAI** to retrieve similar past work and explain **why** a piece of code exists.
+A production-minded, beginner-friendly JavaScript project that ingests Jira
+tickets, linked Confluence pages, and attachments into a
+**MongoDB Atlas Vector Search** RAG index, and exposes a retrieval API for
+downstream chat/LLM systems.
 
----
+Everything is built for **AWS Lambda**:
 
-## Goals
+- An **ingestion Lambda** is triggered by an EventBridge schedule
+  (incremental) and can be manually invoked with `{ "mode": "full" }`.
+- A separate **retrieval Lambda** is fronted by API Gateway.
+- A **CLI runner** simulates both locally using the same code paths.
 
-| Capability | Description |
-|------------|-------------|
-| Line-scoped history | Full commit history relevant to the **selected line range** in the current file, using local Git on the machine. |
-| JIRA | Fetch ticket metadata and bodies via **JIRA REST API** (keys parsed from commits/PRs or explicit lookup). |
-| GitHub | Fetch **pull requests** and **issues** linked to commits, branches, or references in messages. |
-| RAG (planned) | Chunk and embed JIRA issues, PRs, and GitHub issues; store vectors for similarity search. |
-| “Why” explanations (planned) | Given selected code + commits + retrieval results, call **OpenAI** to produce an explanation with **traceable sources** (ticket URLs, PR numbers, issue links). |
+**New to the project?** Start with the beginner-friendly guide:
+**[docs/getting-started.md](docs/getting-started.md)**. It walks you from a
+fresh machine to a successful retrieval query step by step.
 
----
-
-## System architecture
-
-High-level components and how they interact. Secrets (tokens, API keys) stay on the **server** or in local env—not baked into the extension bundle.
-
-```mermaid
-flowchart TB
-    subgraph IDE["VS Code"]
-        EXT[IntentEra Extension]
-        WEB[Webview / UI]
-        EXT --> WEB
-    end
-
-    subgraph Local["Developer machine"]
-        GIT[(Local Git repo)]
-        EXT -->|blame / log / rev-parse| GIT
-    end
-
-    subgraph Backend["Node.js + Express"]
-        API[HTTP API]
-        ORCH[Enrichment orchestrator]
-        RAG[RAG pipeline]
-        LLM[OpenAI client]
-        API --> ORCH
-        API --> RAG
-        RAG --> LLM
-        ORCH --> JIRA[JIRA REST API]
-        ORCH --> GH[GitHub REST / GraphQL]
-    end
-
-    EXT <-->|JSON over HTTPS| API
-    RAG --> EMB[(Embeddings + vector store)]
-    RAG --> DB[(Structured store e.g. SQLite / Postgres)]
-```
-
-### Component responsibilities
-
-- **Extension** — Captures editor selection (file path, start/end lines), resolves repository root, runs or requests Git operations, calls the backend for JIRA/GitHub/RAG/LLM, renders results in a webview or panel.
-- **Express API** — Single place for credentials; implements routes for enrichment, (optional) server-side Git, ingestion, retrieval, and chat/explain endpoints.
-- **Enrichment** — Maps commit SHAs and messages to JIRA keys (`PROJ-123`), GitHub PR/issue references (`#42`, `owner/repo#42`), then fetches normalized metadata.
-- **RAG pipeline** — Chunk text, embed via OpenAI, upsert into a vector index; hybrid search with metadata filters (repo, source type, date).
-- **OpenAI** — Embeddings for retrieval; chat/completions for synthesized “why” answers with citation instructions.
+For the deeper design writeup, see
+[docs/architecture.md](docs/architecture.md). For a list of every doc
+available, see [docs/README.md](docs/README.md).
 
 ---
 
-## End-to-end flow (user journey)
+## Quick start (local)
 
-```mermaid
-flowchart TD
-    A[User selects lines in editor] --> B[Run IntentEra command]
-    B --> C[Resolve Git repo root]
-    C --> D[git blame / git log for line range]
-    D --> E[Collect commit SHAs + messages]
-    E --> F{Backend call}
-    F --> G[Parse JIRA / GitHub refs]
-    G --> H[JIRA API + GitHub API]
-    H --> I[Show linked tickets, PRs, issues]
-    I --> J{Phase 2: RAG enabled?}
-    J -->|No| K[Done — structured view only]
-    J -->|Yes| L[Embed query from code + commits]
-    L --> M[Similarity search across indices]
-    M --> N[OpenAI: answer + citations]
-    N --> O[Display explanation in webview]
+```bash
+# 1) Install dependencies
+npm install
+
+# 2) Copy the example env and fill in real values
+cp .env.example .env
+$EDITOR .env
+
+# 3) Run an incremental sync (the default command)
+node src/cli/runner.js incremental
+
+# 4) Force a full import
+node src/cli/runner.js full
+
+# 5) Ask a retrieval query
+node src/cli/runner.js query "How did we fix the login bug?" \
+  --topK 5 --project PROJ
+
+# 6) Inspect the current Redis sync state
+node src/cli/runner.js state
 ```
 
 ---
 
-## Phased implementation flow (detailed)
+## Project structure
 
-### Phase A — Local history (no cloud)
-
-1. User selects a **contiguous line range** in a tracked file.
-2. Extension runs `git rev-parse --show-toplevel` to find the repo root (and validates the file is inside it).
-3. Extension runs **`git blame -L start,end -- path`** to attribute each line to a commit.
-4. Optionally runs **`git log -L start,end:path`** to list commits that historically touched those lines (richer than blame alone).
-5. Output is normalized to a list of objects: `{ sha, author, date, subject, body?, lineRange }`.
-6. UI shows a **timeline or list** of commits for that selection.
-
-**Design choice:** Run Git **inside the extension** (typical) vs. send line info to the server and run Git there (requires the same filesystem or a clone on the server).
-
-### Phase B — Link commits to JIRA and GitHub
-
-1. From commit messages (and PR titles if already known), extract:
-   - **JIRA keys** — regex such as `[A-Z][A-Z0-9]+-\d+`.
-   - **GitHub** — `#123`, `fixes #123`, `owner/repo#123`, or full URLs.
-2. **Deduplicate** IDs, then batch-fetch:
-   - JIRA: issue fields (summary, description, status, assignee, links).
-   - GitHub: PRs and issues via REST (and optionally GraphQL for comments).
-3. **Associate SHAs to PRs** when not obvious: e.g. GitHub API to list PRs containing a commit (`/repos/{owner}/{repo}/commits/{sha}/pulls` where supported), or search by merge commit.
-4. Return a **unified enrichment payload** for the extension to render (cards with links).
-
-### Phase C — Express service shell
-
-1. **Environment:** `GITHUB_TOKEN`, JIRA base URL + credentials, `OPENAI_API_KEY`, optional DB URL.
-2. **Routes (illustrative):**
-   - `GET /health` — liveness.
-   - `POST /enrich` — body: `{ owner?, repo?, shas[], messages[] }` → linked JIRA/GitHub entities.
-   - Later: `POST /ingest`, `POST /query`, `POST /explain`.
-3. **Cross-cutting:** rate limiting, HTTP caching for stable resources, structured logging.
-
-### Phase D — RAG ingestion and retrieval
-
-1. **Sources:** JIRA descriptions/comments, GitHub issue and PR bodies, review comments (trimmed), optionally commit messages (diffs are often noisy for embedding—use sparingly or summarize first).
-2. **Chunking:** fixed token windows with overlap, or section-aware splits for markdown.
-3. **Embedding:** OpenAI embedding model; store with metadata `{ sourceType, externalId, url, repo, updatedAt }`.
-4. **Sync:** on-demand per repo plus periodic refresh; **idempotent** upserts by external id.
-5. **Query:** build a text query from **selected code** + **path** + **recent commit subjects**; retrieve top-k per source or one merged index with filters.
-
-### Phase E — “Why” explanation (OpenAI)
-
-1. **Inputs:** selection text, optional surrounding context, commit list, retrieved chunks with titles/URLs.
-2. **Prompting:** require **citations** to ticket/PR/issue links; instruct the model to state **low confidence** when evidence is thin.
-3. **Output:** short explanation + bullet list of **supporting references** for the user to open in browser.
-
----
-
-## Data flow (enrichment + optional RAG)
-
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant E as Extension
-    participant G as Local Git
-    participant S as Express API
-    participant J as JIRA
-    participant H as GitHub
-    participant V as Vector DB
-    participant O as OpenAI
-
-    U->>E: Select lines, run command
-    E->>G: blame / log for range
-    G-->>E: SHAs + messages
-    E->>S: POST /enrich
-    S->>J: Fetch issues by key
-    S->>H: Fetch PRs / issues
-    J-->>S: Ticket JSON
-    H-->>S: PR / issue JSON
-    S-->>E: Unified enrichment
-    E-->>U: Show links + metadata
-
-    Note over E,O: Phase 2 — optional
-    E->>S: POST /explain (code + context)
-    S->>V: similarity search
-    V-->>S: top-k chunks
-    S->>O: chat with retrieved context
-    O-->>S: answer + citations
-    S-->>E: explanation payload
-    E-->>U: Webview result
+```
+IntentEra/
+├── config/
+│   ├── appConfig.js        # Env-driven config with validation
+│   └── secrets.js          # AWS Secrets Manager loader
+├── src/
+│   ├── handler/
+│   │   ├── ingest.js       # Lambda entry: ingestion
+│   │   └── retrieve.js     # Lambda entry: retrieval
+│   ├── cli/runner.js       # Local CLI simulator
+│   ├── jira/
+│   │   ├── client.js       # Jira REST API client (paginated)
+│   │   └── fetcher.js      # Fetch tickets, comments, attachments, links
+│   ├── confluence/client.js# Confluence REST API client (live fetch)
+│   ├── attachments/parser.js# PDF/DOCX/TXT/HTML parsing
+│   ├── sync/orchestrator.js# Full + incremental sync orchestration
+│   ├── state/redisState.js # Redis sync state read/write
+│   ├── normalization/normalizer.js # Jira raw → unified schema
+│   ├── chunking/chunker.js # Section-aware chunking per source type
+│   ├── embeddings/embedder.js# OpenAI embeddings with retry + batching
+│   ├── vectorStore/mongoStore.js # MongoDB Atlas upsert/delete/search
+│   ├── retrieval/queryHandler.js # Retrieval logic module
+│   ├── utils/
+│   │   ├── logger.js       # Structured JSON logger
+│   │   ├── retry.js        # Exponential-backoff retry helper
+│   │   └── wiring.js       # Dependency factory (shared by Lambdas + CLI)
+│   └── index.js            # Convenience re-exports
+└── docs/
+    ├── architecture.md     # Design guide (read this!)
+    └── examples/           # EventBridge, Secrets Manager, retrieval, etc.
 ```
 
 ---
 
-## Tech stack (planned)
+## Deploying to AWS
 
-| Layer | Technology |
-|-------|------------|
-| Extension | VS Code Extension API, TypeScript |
-| Backend | Node.js, Express |
-| AI | OpenAI API (embeddings + chat) |
-| Integrations | JIRA REST, GitHub REST/GraphQL |
-| Storage | TBD — e.g. SQLite + local vector store, or Postgres + pgvector |
+You can package this project with any tooling you prefer (SAM, Serverless
+Framework, CDK, raw ZIP). At a minimum you need:
+
+1. **Ingestion Lambda**
+   - Handler: `src/handler/ingest.handler`
+   - Memory: 1024 MB recommended
+   - Timeout: 15 min (maximum)
+   - Env vars: see [`.env.example`](.env.example) (or set
+     `USE_SECRETS_MANAGER=true` + `SECRETS_MANAGER_SECRET_ID`)
+   - Trigger: EventBridge rule, e.g.
+     [`docs/examples/eventbridge-rule.json`](docs/examples/eventbridge-rule.json)
+
+2. **Retrieval Lambda**
+   - Handler: `src/handler/retrieve.handler`
+   - Memory: 512 MB recommended
+   - Timeout: 15–30 seconds
+   - Trigger: API Gateway HTTP API POST route (e.g. `POST /retrieve`).
+
+3. **Atlas Vector Search index** — create it in the Atlas UI with the
+   definition from `docs/architecture.md` §9. Name must match
+   `MONGODB_VECTOR_INDEX`.
+
+4. **IAM permissions** — each Lambda needs permission to call
+   `secretsmanager:GetSecretValue` on the configured secret ARN, plus the
+   usual VPC / network access for MongoDB Atlas and your Redis endpoint.
 
 ---
 
-## Repository layout (to be filled as code lands)
+## How to force a full import
 
-As you add packages (`extension/`, `server/`, etc.), document the actual folders here so newcomers can navigate quickly.
+Any of these work:
+
+- AWS Console: open the ingestion Lambda → Test event → payload
+  `{"mode":"full"}` → Invoke.
+- CLI (aws): `aws lambda invoke --function-name intentera-ingest
+  --payload '{"mode":"full"}' /tmp/out.json`.
+- Env flag: set `SYNC_MODE=full` on the Lambda config and invoke.
+- Local CLI: `node src/cli/runner.js full`.
 
 ---
 
-## License
+## Documentation map
 
-TBD.
+Full index with descriptions: **[docs/README.md](docs/README.md)**.
+
+Beginner-friendly walkthroughs:
+
+- [docs/getting-started.md](docs/getting-started.md) — end-to-end first-run
+  guide.
+- [docs/local-development.md](docs/local-development.md) — CLI usage,
+  expected output, debugging tips.
+- [docs/aws-deployment.md](docs/aws-deployment.md) — Lambda packaging,
+  EventBridge, API Gateway, IAM.
+- [docs/configuration-reference.md](docs/configuration-reference.md) —
+  every env var in plain language.
+- [docs/debugging-and-troubleshooting.md](docs/debugging-and-troubleshooting.md)
+  — common errors and how to fix them.
+
+Per-service setup:
+
+- [docs/mongodb-atlas-setup.md](docs/mongodb-atlas-setup.md)
+- [docs/redis-setup.md](docs/redis-setup.md)
+- [docs/jira-confluence-setup.md](docs/jira-confluence-setup.md)
+- [docs/openai-setup.md](docs/openai-setup.md)
+- [docs/secrets-manager-setup.md](docs/secrets-manager-setup.md)
+
+Deeper technical reading:
+
+- [docs/architecture.md](docs/architecture.md) — design walkthrough,
+  chunking strategy, Redis state, Atlas index definition, tradeoffs.
+- [docs/examples/](docs/examples/) — example EventBridge rule,
+  invocation payloads, Secrets Manager JSON, Redis state shape.
+- Every `.js` file in `src/` and `config/` has extensive inline comments.

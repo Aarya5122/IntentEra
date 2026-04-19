@@ -1,0 +1,40 @@
+{
+  "name": "intentera-jira-rag",
+  "version": "1.0.0",
+  "description": "AWS Lambda based RAG ingestion and retrieval system for Jira tickets, attachments, and Confluence content. Uses MongoDB Atlas Vector Search, Redis sync state, OpenAI embeddings, and AWS Secrets Manager.",
+  "main": "src/index.js",
+  "scripts": {
+    "cli": "node src/cli/runner.js",
+    "cli:full": "node src/cli/runner.js full",
+    "cli:incremental": "node src/cli/runner.js incremental",
+    "cli:query": "node src/cli/runner.js query",
+    "start": "node src/cli/runner.js"
+  },
+  "keywords": [
+    "aws",
+    "lambda",
+    "jira",
+    "confluence",
+    "rag",
+    "vector-search",
+    "mongodb",
+    "openai",
+    "embeddings"
+  ],
+  "author": "IntentEra",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.645.0",
+    "axios": "^1.7.7",
+    "cheerio": "^1.0.0",
+    "dotenv": "^16.4.5",
+    "ioredis": "^5.4.1",
+    "mammoth": "^1.8.0",
+    "mongodb": "^6.8.0",
+    "openai": "^4.58.1",
+    "pdf-parse": "^1.1.1"
+  }
+}

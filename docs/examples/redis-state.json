@@ -1,0 +1,10 @@
+{
+  "lastFullImportAt": "2026-04-15T04:00:00.000Z",
+  "lastIncrementalStartAt": "2026-04-19T19:00:00.000Z",
+  "lastIncrementalCompletedAt": "2026-04-19T19:03:42.812Z",
+  "mode": "incremental",
+  "status": "idle",
+  "failureReason": null,
+  "schemaVersion": 1,
+  "knownTicketKeys": ["PROJ-1", "PROJ-2", "PROJ-3", "ENG-101"]
+}
