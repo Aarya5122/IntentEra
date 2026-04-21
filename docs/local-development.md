@@ -28,7 +28,7 @@ can do a pre-flight check:
 node -e "
 require('dotenv').config();
 const required = ['JIRA_BASE_URL','JIRA_EMAIL','JIRA_API_TOKEN','MONGODB_URI','REDIS_URL','OPENAI_API_KEY','JIRA_PROJECT_KEYS'];
-const missing = required.filter(k => !process.env[k]);
+const missing = required.filter(k => \!process.env[k]);
 console.log(missing.length ? 'MISSING: ' + missing.join(', ') : 'All required env vars are set.');
 "
 ```

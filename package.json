@@ -4,11 +4,11 @@
   "description": "AWS Lambda based RAG ingestion and retrieval system for Jira tickets, attachments, and Confluence content. Uses MongoDB Atlas Vector Search, Redis sync state, OpenAI embeddings, and AWS Secrets Manager.",
   "main": "src/index.js",
   "scripts": {
-    "cli": "node src/cli/runner.js",
-    "cli:full": "node src/cli/runner.js full",
-    "cli:incremental": "node src/cli/runner.js incremental",
-    "cli:query": "node src/cli/runner.js query",
-    "start": "node src/cli/runner.js"
+    "cli": "node --no-deprecation src/cli/runner.js",
+    "cli:full": "node --no-deprecation src/cli/runner.js full",
+    "cli:incremental": "node --no-deprecation src/cli/runner.js incremental",
+    "cli:query": "node --no-deprecation src/cli/runner.js query",
+    "start": "node --no-deprecation src/cli/runner.js"
   },
   "keywords": [
     "aws",
@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-secrets-manager": "^3.645.0",
+    "@aws-sdk/credential-providers": "^3.1033.0",
     "axios": "^1.7.7",
     "cheerio": "^1.0.0",
     "dotenv": "^16.4.5",

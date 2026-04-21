@@ -5,6 +5,7 @@ node_modules/
 .env
 .env.*
 !.env.example
+env-from-dotenv.json
 
 # Logs
 *.log

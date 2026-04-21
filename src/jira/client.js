@@ -119,33 +119,35 @@ class JiraClient {
    * @returns {AsyncGenerator<any, void, unknown>}
    */
   async *searchIssues({ jql, pageSize = 50, fields }) {
-    let startAt = 0;
     // Jira caps pageSize at 100 for most tenants; 50 is a conservative default.
     const fieldsParam = fields?.length ? fields.join(',') : '*all';
+    // POST /rest/api/3/search/jql uses cursor-based pagination via nextPageToken.
+    let nextPageToken;
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
+      const body = {
+        jql,
+        maxResults: pageSize,
+        fields: fieldsParam === '*all' ? ['*all'] : fieldsParam.split(','),
+        // expand must be a comma-separated string for /search/jql (not an array).
+        expand: 'renderedFields,names',
+      };
+      if (nextPageToken) body.nextPageToken = nextPageToken;
+
       const response = await withRetry(
-        () =>
-          this.http.post('/rest/api/3/search', {
-            jql,
-            startAt,
-            maxResults: pageSize,
-            fields: fieldsParam.split(','),
-            // `expand` fetches useful sub-resources in one round trip.
-            expand: ['renderedFields', 'names'],
-          }),
+        () => this.http.post('/rest/api/3/search/jql', body),
         { label: 'jira-search', logger: this.logger }
       );
 
-      const { issues = [], total = 0 } = response.data || {};
+      const { issues = [], nextPageToken: next } = response.  data || {};
       for (const issue of issues) {
         yield issue;
       }
 
-      // If we got fewer than requested OR we've consumed `total`, we're done.
-      startAt += issues.length;
-      if (issues.length < pageSize || startAt >= total) break;
+      // No next cursor or empty page means we have consumed all results.
+      if (!next || issues.length < pageSize) break;
+      nextPageToken = next;
     }
   }
 

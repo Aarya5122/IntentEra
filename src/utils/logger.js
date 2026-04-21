@@ -52,9 +52,9 @@ function write(level, message, meta) {
   // in the dashboard if applicable. Everything else goes to stdout.
   const line = JSON.stringify(entry);
   if (level === 'error' || level === 'warn') {
-    process.stderr.write(line + '\n');
+    process.stderr.write(line + '\n\n\n');
   } else {
-    process.stdout.write(line + '\n');
+    process.stdout.write(line + '\n\n\n');
   }
 }
 
