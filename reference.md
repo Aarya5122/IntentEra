@@ -1,611 +1,346 @@
-ll the beginner-friendly setup, execution, and operational documentation has been added to the docs/ folder. Here is the complete set that was created/updated:
+# IntentEra Jira RAG — Architecture & Operations Guide
 
-New documentation files in docs/:
+This document complements the code with a deeper narrative of **why** each
+piece exists, how they interact, and how to operate the system.
 
-README.md — Index of every guide, read-in-order recommendation, and "where to go when stuck" pointer.
-getting-started.md — End-to-end first-run path from "nothing installed" to "successful retrieval query" (prerequisites, accounts, the 10-minute mental model, and a concrete 11-step walkthrough).
-mongodb-atlas-setup.md — Step-by-step Atlas account, M10 cluster, DB user, network access, connection string, collection, and Vector Search index JSON.
-redis-setup.md — Three options (Docker local, Upstash serverless, AWS ElastiCache) with verification snippets.
-jira-confluence-setup.md — API token generation, base URL, scope filters, test curl/node snippets, permissions notes.
-openai-setup.md — API key creation, billing caps, model choice, dimensions warning (must match Atlas index), verification snippet.
-secrets-manager-setup.md — Create secret, name it, set rotation, IAM inline policy, point Lambda env vars at the secret, verification.
-local-development.md — Install, pre-flight env check, full CLI command reference (incremental, full, query, state), expected output, debugging tips (per-ticket isolation, Mongo inspection, state reset).
-aws-deployment.md — Zip packaging, creating both Lambdas (handler paths, memory, timeout, env vars), EventBridge schedule, API Gateway HTTP API with curl test, VPC networking notes, cost breakdown, upgrade + delete steps.
-configuration-reference.md — Every environment variable explained in plain English, grouped by purpose, with defaults and "what counts as secret".
-debugging-and-troubleshooting.md — Common errors indexed by exact message (401 Unauthorized, MongoServerSelectionError, ECONNREFUSED, insufficient_quota, timeouts, API Gateway 500s, retrieval-quality issues) with specific fixes, plus a "reset to clean slate" recipe.
-Root README.md updated to feature the beginner-friendly path (docs/getting-started.md) prominently and to link out to the full documentation map.
+---
 
-Each guide is self-contained, cross-links to related guides, and is written for someone with minimal AWS or Node.js experience.
+## 1. Overall system architecture
 
+Two Lambdas share a common set of infrastructure (MongoDB Atlas Vector Search,
+Redis, OpenAI, AWS Secrets Manager):
 
+- **Ingestion Lambda** — `src/handler/ingest.js`
+  - Triggered by an EventBridge schedule (incremental) OR manual invocation
+  with `{ "mode": "full" }` (full import).
+  - Reads Jira tickets + linked Confluence + attachments, normalises them,
+  chunks them, embeds them, and upserts into MongoDB Atlas.
+  - Records sync state in Redis.
+- **Retrieval Lambda** — `src/handler/retrieve.js`
+  - Fronted by API Gateway.
+  - Accepts `{ query, topK, filters }`, embeds the query, runs a Mongo
+  `$vectorSearch`, and returns a structured context payload.
 
--------------
+Both Lambdas are built from the same `src/` modules and therefore share exactly
+one implementation of Mongo, OpenAI, and config loading logic.
 
+---
 
-Jira RAG Lambda System - Full Build Plan
+## 2. Lambda scheduling and execution
 
-Architecture Overview
+- **EventBridge rule** (incremental) is the recommended production trigger.
+Suggested cron: every 30 minutes. EventBridge events do not include a
+`mode` field, so the handler falls back to `SYNC_MODE` env var (default
+`incremental`).
+- **Forced full import** is a one-off invocation. Any of these work:
+  1. AWS Console → Test event `{ "mode": "full" }`.
+  2. `aws lambda invoke --function-name intentera-ingest --payload '{"mode":"full"}' /tmp/out.json`.
+  3. Local CLI: `node src/cli/runner.js full`.
+- **Lambda timeout**: set to 15 minutes (maximum). Ingestion streams issues
+one at a time so it can make steady progress even with many thousands of
+tickets.
+- **Lambda memory**: 1024 MB is a reasonable starting point; attachment
+parsing (especially large PDFs) is the main memory-heavy activity.
+- **Retrieval Lambda** should have a lower timeout (15s is plenty) and be
+tuned for short, fast responses.
 
-flowchart TD
-    EB[EventBridge Schedule] -->|"incremental trigger"| IngestLambda
-    CLI[Local CLI Runner] -->|"simulates event payload"| IngestLambda
-    CLI -->|"simulates query payload"| RetrieveLambda
-    APIGW[API Gateway] --> RetrieveLambda
+---
 
-    subgraph ingestion [Ingestion Lambda]
-        IngestLambda[handler/ingest.js] --> SyncOrchestrator[sync/orchestrator.js]
-        SyncOrchestrator --> JiraClient[jira/client.js]
-        SyncOrchestrator --> ConfluenceClient[confluence/client.js]
-        SyncOrchestrator --> AttachmentParser[attachments/parser.js]
-        SyncOrchestrator --> Normalizer[normalization/normalizer.js]
-        SyncOrchestrator --> Chunker[chunking/chunker.js]
-        SyncOrchestrator --> Embedder[embeddings/embedder.js]
-        SyncOrchestrator --> VectorStore[vectorStore/mongoStore.js]
-        SyncOrchestrator --> StateManager[state/redisState.js]
-    end
+## 3. Full import vs incremental sync
 
-    subgraph retrieval [Retrieval Lambda]
-        RetrieveLambda[handler/retrieve.js] --> QueryHandler[retrieval/queryHandler.js]
-        QueryHandler --> Embedder2[embeddings/embedder.js]
-        QueryHandler --> VectorSearch[vectorStore/mongoStore.js]
-    end
+### Full import
 
-    SecretsManager[AWS Secrets Manager] --> IngestLambda
-    SecretsManager --> RetrieveLambda
-    Redis[(Redis)] --> StateManager
-    MongoDB[(MongoDB Atlas)] --> VectorStore
-    Jira[Jira API] --> JiraClient
-    Confluence[Confluence API] --> ConfluenceClient
+1. Redis state is wiped at the end of a successful run (the success writer
+  replaces the whole state object).
+2. JQL has no `updatedSince` clause — we fetch ALL tickets in scope.
+3. For each ticket: delete existing Mongo chunks → insert fresh ones.
+4. After processing, any key that was in the previous `knownTicketKeys` set
+  but NOT in the newly processed set is deleted from Mongo.
 
+### Incremental sync
 
+1. Read Redis state → get `lastIncrementalStartAt` (fall back to
+  `lastFullImportAt`).
+2. Compute `effectiveStart = anchor - lookbackMinutes`.
+3. JQL uses `updated >= "<effectiveStart>"`.
+4. For each changed ticket: delete existing Mongo chunks → insert fresh ones.
+5. Ask Jira for the full in-scope key list (skinny query). Any
+  `knownTicketKey` missing from that list is considered deleted/out-of-scope.
+6. On success, write the new `lastIncrementalStartAt = runStartedAt`.
 
-1. Lambda Execution and Scheduling
+### Why a lookback window?
 
+Jira's `updatedDate` is not strictly real-time — it is updated by asynchronous
+processes and can lag by a minute or more. If we used a zero-overlap window we
+would occasionally miss updates that landed a few seconds after our last run
+finished.
 
+The 1-hour default is conservative. Shorten it if you run frequent incrementals
+and want to minimise reprocessing; lengthen it if you observe missed updates.
 
+### Idempotency
 
+Because every ticket re-index does `deleteMany({ ticketKey }) → insertMany(...)`,
+re-processing the same ticket multiple times (which the overlap window forces)
+is completely safe:
 
-Ingestion Lambda (handler/ingest.js) triggered by:
+- No duplicate chunks.
+- No partial-old + partial-new state: either the old chunks are still there
+or the new ones are.
 
+---
 
+## 4. Redis sync state design
 
+See [src/state/redisState.js](../src/state/redisState.js) for the schema and
+helper methods.
 
-
-EventBridge cron (incremental mode by default)
-
-
-
-Manual invocation with { "mode": "full" } payload for forced full import
-
-
-
-Retrieval Lambda (handler/retrieve.js) triggered by:
-
-
-
-
-
-API Gateway POST with { "query": "...", "filters": {} }
-
-
-
-Mode is determined by reading event.mode → fallback to process.env.SYNC_MODE → default incremental
-
-
-
-2. Full Import vs Incremental Sync
-
-Full Import:
-
-
-
-
-
-Fetch all Jira issues matching configured scope (project, type, status, labels)
-
-
-
-For each issue: fetch comments, linked issues, attachments, Confluence refs
-
-
-
-Normalize → chunk → embed → upsert vectors
-
-
-
-Delete any stale vectors not present in this run (by scanning existing sourceId values)
-
-
-
-Write fresh Redis sync state on success
-
-Incremental Sync:
-
-
-
-
-
-Read lastSyncStartTime from Redis
-
-
-
-Compute effectiveStart = lastSyncStartTime - lookbackWindow (default 1 hour)
-
-
-
-Query Jira for issues updated >= effectiveStart
-
-
-
-For each changed issue: delete old chunks by ticketKey, re-normalize → re-chunk → re-embed → upsert
-
-
-
-Detect deleted issues via Jira's deletedSince API or by cross-checking known keys in Redis
-
-
-
-Write new lastSyncStartTime to Redis only on full success
-
-Why the lookback window exists: Jira's updatedDate can lag behind real changes by minutes. The 1-hour overlap ensures we never miss an update. Idempotency (delete-before-upsert per ticket) makes duplicate processing safe.
-
-
-
-3. Redis Sync State Design
-
-Redis key prefix: intentera:sync:
-
-intentera:sync:state          →  JSON object:
-  {
-    "lastFullImportAt": "ISO8601",
-    "lastIncrementalStartAt": "ISO8601",
-    "lastIncrementalCompletedAt": "ISO8601",
-    "mode": "incremental" | "full",
-    "status": "idle" | "running" | "failed",
-    "failureReason": "...",
-    "schemaVersion": 1,
-    "knownTicketKeys": ["PROJ-1", "PROJ-2", ...]  // for deletion detection
-  }
-
-
-
-
-
-State is written only after successful run to prevent partial checkpoint corruption
-
-
-
-A running status lock prevents overlapping incremental runs
-
-
-
-Forced full import clears knownTicketKeys and rebuilds from scratch
-
-
-
-Corrupted/missing state triggers a safe fallback to full import
-
-
-
-4. Deletion Detection and Stale-Index Cleanup
-
-Strategy (delete-before-upsert per ticket):
-
-
-
-
-
-Every chunk stored in MongoDB carries metadata: { ticketKey, sourceType, chunkIndex }
-
-
-
-A compound field chunkId is a deterministic key: MD5(ticketKey + sourceType + contentHash)
-
-
-
-On re-indexing a ticket: deleteMany({ ticketKey }) → then upsert all new chunks
-
-
-
-For removed tickets detected via Jira deleted-issues API (or missing from full import set): deleteMany({ ticketKey })
-
-
-
-For removed attachments/Confluence links: tracked in normalized issue; delta computed on re-index
-
-
-
-5. Chunking Strategy
-
-Per-ticket chunk pipeline (no naive fixed-size splitting):
-
-
-
-
-
-
-
-Chunk Type
-
-
-
-Strategy
-
-
-
-Typical Size
-
-
-
-
-
-Ticket metadata
-
-
-
-Single chunk: key + summary + labels + status + priority + assignee
-
-
-
-~200 tokens
-
-
-
-
-
-Description
-
-
-
-Section-aware paragraph splitting; overlap 50 tokens between adjacent chunks
-
-
-
-300–500 tokens
-
-
-
-
-
-Comments
-
-
-
-Group short comments into windows of ≤3; long comments split individually
-
-
-
-200–400 tokens
-
-
-
-
-
-Linked issues
-
-
-
-One chunk per linked issue summary
-
-
-
-~200 tokens
-
-
-
-
-
-Attachments
-
-
-
-Recursive paragraph split on extracted text; separate chunk per file
-
-
-
-300–500 tokens
-
-
-
-
-
-Confluence pages
-
-
-
-Section-header-aware split; separate chunk pipeline
-
-
-
-400–600 tokens
-
-Stable chunk IDs: sha256(ticketKey + sourceType + subIndex + contentFingerprint) — deterministic, survives re-runs, enables exact-match deduplication.
-
-
-
-6. Attachment Parsing
-
-
-
-
-
-
-
-Format
-
-
-
-Library
-
-
-
-Tradeoff
-
-
-
-
-
-PDF
-
-
-
-pdf-parse
-
-
-
-Fast, no native deps; struggles with scanned PDFs
-
-
-
-
-
-DOCX
-
-
-
-mammoth
-
-
-
-Clean HTML/text output; no OLE binary support
-
-
-
-
-
-TXT
-
-
-
-Native fs read
-
-
-
-Trivial
-
-
-
-
-
-HTML
-
-
-
-cheerio
-
-
-
-Lightweight DOM; strips tags cleanly
-
-
-
-
-
-Parse failure → log warning, retain attachment metadata chunk with empty text + parseError: true flag
-
-
-
-All attachment chunks carry: { sourceType: "attachment", fileName, fileType, attachmentId, ticketKey }
-
-
-
-7. Confluence Ingestion
-
-
-
-
-
-Discovered via Jira issue remote links (remoteLinks REST endpoint)
-
-
-
-Fetched live per indexing run using Confluence REST API v2
-
-
-
-Chunked separately from ticket text using the same section-aware strategy
-
-
-
-Metadata: { sourceType: "confluence", pageId, pageTitle, ticketKey }
-
-
-
-Removed Confluence links: detected by diffing currentRemoteLinks vs previousRemoteLinks stored in Redis/normalized state → triggers deleteMany({ pageId, ticketKey })
-
-
-
-Fetch failures are logged and skipped; do not fail the entire run
-
-
-
-8. MongoDB Vector Document Structure
-
+```json
 {
-  "_id": "<chunkId>",
-  "ticketKey": "PROJ-123",
-  "projectKey": "PROJ",
-  "sourceType": "description | comments | attachment | confluence | metadata | linkedIssues",
-  "chunkIndex": 0,
-  "text": "...",
-  "embedding": [0.001, ...],
-  "metadata": {
-    "summary": "...",
-    "status": "In Progress",
-    "priority": "High",
-    "labels": ["backend"],
-    "updatedAt": "ISO8601",
-    "fileName": null,
-    "pageTitle": null,
-    "attachmentId": null
-  },
-  "indexedAt": "ISO8601"
+  "lastFullImportAt": "2026-04-19T18:00:00Z",
+  "lastIncrementalStartAt": "2026-04-19T19:00:00Z",
+  "lastIncrementalCompletedAt": "2026-04-19T19:03:42Z",
+  "mode": "incremental",
+  "status": "idle",
+  "failureReason": null,
+  "schemaVersion": 1,
+  "knownTicketKeys": ["PROJ-1", "PROJ-2", "PROJ-3"]
 }
+```
 
-Atlas Vector Search index on embedding field (1536 dimensions for text-embedding-3-small).
+Operational rules we enforce in code:
 
+- State is written only on successful completion (`writeIncrementalSuccess` /
+`writeFullImportSuccess`).
+- On error we call `markRunFailed`, which changes `status` and
+`failureReason` but DOES NOT advance time checkpoints.
+- A distributed lock (`<prefix>lock`) held via Redis `SET NX EX` prevents two
+Lambdas from running at the same time. The TTL ensures a crashed holder
+cannot wedge the lock permanently.
+- If Redis state is missing, corrupt, or unreadable, the orchestrator
+upgrades an incremental run to a full import so we do not lose tickets.
+
+---
 
+## 5. Deletion detection and stale-index cleanup
 
-9. Retrieval API Design
+Three deletion flows:
 
+1. **Ticket no longer in scope** — detected at the end of both full and
+  incremental runs by diffing `prev.knownTicketKeys` against the
+   authoritative current set.
+2. **Attachments / Confluence links removed from a ticket** — handled
+  implicitly by the ticket's delete-before-upsert cycle. When we re-index a
+   ticket, ALL its old chunks disappear in the delete step. If an attachment
+   or Confluence link is no longer referenced, its chunks simply are not
+   regenerated.
+3. **Comment edits / deletions** — the parent ticket's `updated` timestamp
+  changes whenever a comment is added, edited, or deleted, so the ticket
+   appears in the next incremental run and the full delete-before-upsert
+   cycle repeats.
 
+Because every chunk uses a deterministic `chunkId = sha256(ticketKey | sourceType | subIndex | contentFingerprint)`,
+repeated re-indexing of unchanged content keeps producing the same chunk IDs,
+avoiding churn.
 
+---
 
+## 6. Chunking methodology
 
-Retrieval Lambda (handler/retrieve.js) is a separate Lambda from ingestion
+Implemented in [src/chunking/chunker.js](../src/chunking/chunker.js).
 
 
+| Chunk type     | Strategy                                                       | Why                                                                                  |
+| -------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `metadata`     | A single compact chunk with summary, labels, status, priority. | Answers "what is PROJ-123 about?" with one laser-focused match.                      |
+| `description`  | Paragraph-aware grouping under a token budget, small overlap.  | Preserves paragraph boundaries for coherent semantics.                               |
+| `comments`     | Group up to N short comments together; long comments alone.    | Short comments in isolation are noisy; grouping them retains conversational context. |
+| `linkedIssues` | One per linked issue summary.                                  | Retrieval can find "what depends on PROJ-123?" through these.                        |
+| `attachment`   | Paragraph-aware grouping per file, no overlap.                 | Attachments are usually self-contained documents.                                    |
+| `confluence`   | Paragraph-aware grouping per page, no overlap.                 | Same reasoning as attachments.                                                       |
 
-API Gateway POST → { query, topK, filters: { projectKey, sourceType, labels } }
 
+Stable chunk IDs keep the delete-before-upsert workflow safe and repeatable.
 
+---
 
-Flow: embed(query) → vectorSearch(embedding, filters, topK) → assemble context payload
+## 7. Attachment parsing strategy
 
+See [src/attachments/parser.js](../src/attachments/parser.js).
 
+- PDF: `pdf-parse` — pure JS, handles text-layer PDFs quickly. Does not handle OCR  
+scanned images; a metadata-only chunk is produced in that case.
+- DOCX: `mammoth` — clean text extraction from Word Open Office XML.
+- TXT: Buffer → UTF-8 (or latin1 fallback if replacement characters appear).
+- HTML: `cheerio` — strip scripts and styles, pull body text.
 
-Response: { results: [{ chunkId, text, score, metadata }], query, retrievedAt }
+Failure policy: emit a placeholder chunk with `parseError` set so retrieval
+can still surface "file exists but unreadable" without breaking the run.
 
+---
 
+## 8. Confluence ingestion strategy
 
-Shared modules: embeddings/embedder.js, vectorStore/mongoStore.js, config/secrets.js
+See [src/confluence/client.js](../src/confluence/client.js).
 
+- Confluence pages are discovered through Jira's REST remote-link endpoint
+(`/rest/api/3/issue/<key>/remotelink`).
+- Only links whose URL matches `/pages/<id>/...` are treated as Confluence
+pages.
+- We use the Confluence v2 API (`/api/v2/pages/<id>?body-format=storage`) to
+fetch page content and convert the storage XHTML to plain text via cheerio.
+- Fetch failures are logged and skipped — a single dead link never aborts a
+run.
+
+No caching is used: every indexing run performs live fetches, as required.
 
+---
 
-Project Structure
+## 9. Embedding + MongoDB vector design
 
-IntentEra/
-├── package.json
-├── .env.example
-├── config/
-│   ├── appConfig.js          # env-driven config with validation
-│   └── secrets.js            # AWS Secrets Manager loader
-├── src/
-│   ├── handler/
-│   │   ├── ingest.js         # Lambda entry point - ingestion
-│   │   └── retrieve.js       # Lambda entry point - retrieval
-│   ├── cli/
-│   │   └── runner.js         # Local CLI simulator
-│   ├── jira/
-│   │   ├── client.js         # Jira REST API client (paginated)
-│   │   └── fetcher.js        # Fetch tickets, comments, attachments, links
-│   ├── confluence/
-│   │   └── client.js         # Confluence REST API client
-│   ├── attachments/
-│   │   └── parser.js         # PDF/DOCX/TXT/HTML parsers
-│   ├── sync/
-│   │   └── orchestrator.js   # Full/incremental sync orchestration
-│   ├── state/
-│   │   └── redisState.js     # Redis sync state read/write
-│   ├── normalization/
-│   │   └── normalizer.js     # Normalize raw Jira → unified schema
-│   ├── chunking/
-│   │   └── chunker.js        # Section-aware chunking per source type
-│   ├── embeddings/
-│   │   └── embedder.js       # OpenAI embeddings with retry
-│   ├── vectorStore/
-│   │   └── mongoStore.js     # MongoDB Atlas upsert/delete/search
-│   ├── retrieval/
-│   │   └── queryHandler.js   # Retrieval logic module
-│   └── utils/
-│       ├── logger.js         # Structured logger
-│       └── retry.js          # Exponential backoff retry helper
-└── docs/
-    └── architecture.md       # Design decisions reference
-
-
-
-Key Dependencies
-
-
-
-
-
-@aws-sdk/client-secrets-manager - Secrets Manager
-
-
-
-openai - Embeddings API
-
-
-
-mongodb - Atlas driver
-
-
-
-ioredis - Redis client
-
-
-
-axios - HTTP client for Jira/Confluence
-
-
-
-pdf-parse - PDF text extraction
-
-
-
-mammoth - DOCX text extraction
-
-
-
-cheerio - HTML parsing
-
-
-
-crypto (built-in) - Deterministic chunk ID hashing
-
-
-
-dotenv - Local dev env loading
-
-
-
-Tradeoffs and Future Improvements
-
-
-
-
-
-Single Lambda run for all tickets: Works for moderate Jira scopes; for very large orgs (10k+ tickets), fan-out with SQS + per-ticket Lambda would be needed
-
-
-
-OpenAI embeddings: text-embedding-3-small is cost-effective and 1536-dimensional; can swap to text-embedding-3-large for higher quality or to Cohere/local model later
-
-
-
-MongoDB Atlas: Requires Atlas M10+ cluster for vector search; free tier is not supported
-
-
-
-Redis lock: Simple SET NX EX lock; for true distributed safety, use Redlock
-
-
-
-Confluence fetch: Live fetch per run adds latency; a future TTL-cached fetch layer could reduce API calls
-
-
-
-Comment edit detection: Relies on Jira's updated timestamp on the parent issue (not per-comment); per-comment change detection would require storing comment hashes in Redis
+- Provider: OpenAI `text-embedding-3-small` by default (1536 dimensions).
+- Storage: one Mongo document per chunk, `_id` = deterministic chunk hash.
+- Atlas Vector Search index definition (create this in the Atlas UI):
+  ```json
+  {
+    "fields": [
+      {
+        "type": "vector",
+        "path": "embedding",
+        "numDimensions": 1536,
+        "similarity": "cosine"
+      },
+      { "type": "filter", "path": "ticketKey" },
+      { "type": "filter", "path": "projectKey" },
+      { "type": "filter", "path": "sourceType" },
+      { "type": "filter", "path": "metadata.labels" }
+    ]
+  }
+  ```
+  The index name must match `MONGODB_VECTOR_INDEX` (default `vector_index`).
+
+---
+
+## 10. Retrieval API design
+
+See [src/handler/retrieve.js](../src/handler/retrieve.js) and
+[src/retrieval/queryHandler.js](../src/retrieval/queryHandler.js).
+
+Flow: `parse event` → `embed query` → `vector search with filters` →
+`return structured context`.
+
+Filters supported out of the box: `projectKey`, `sourceType`, `ticketKey`,
+`labels`. Any combination may be supplied.
+
+The response contains both:
+
+- Structured `results[]` for programmatic consumption.
+- A concatenated `context` string ready to paste into an LLM prompt.
+
+---
+
+## 11. Local CLI simulation
+
+See [src/cli/runner.js](../src/cli/runner.js). The runner reuses the exact
+handler modules the Lambdas use, guaranteeing parity between local and cloud.
+
+Examples:
+
+```bash
+node src/cli/runner.js incremental
+node src/cli/runner.js full
+node src/cli/runner.js query "How did we fix the login bug?" --topK 5 --project PROJ
+node src/cli/runner.js state
+```
+
+---
+
+## 12. EventBridge example
+
+```json
+{
+  "Name": "intentera-incremental-30m",
+  "ScheduleExpression": "rate(30 minutes)",
+  "State": "ENABLED",
+  "Targets": [
+    {
+      "Id": "ingest-lambda",
+      "Arn": "arn:aws:lambda:us-east-1:123456789012:function:intentera-ingest",
+      "Input": "{}"
+    }
+  ]
+}
+```
+
+Manual full-import invocation:
+
+```bash
+aws lambda invoke \
+  --function-name intentera-ingest \
+  --payload '{"mode":"full"}' \
+  /tmp/out.json
+```
+
+Retrieval invocation via API Gateway (`curl` example):
+
+```bash
+curl -X POST https://api.example.com/intentera/retrieve \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "query": "How did we fix the login bug in July?",
+    "topK": 8,
+    "filters": { "projectKey": "PROJ", "sourceType": ["comments","description"] }
+  }'
+```
+
+---
+
+## 13. AWS Secrets Manager example payload
+
+Create a secret (JSON) at e.g. `intentera/rag/prod`:
+
+```json
+{
+  "JIRA_BASE_URL": "https://acme.atlassian.net",
+  "JIRA_EMAIL": "ingestor@acme.com",
+  "JIRA_API_TOKEN": "ATATT3xFfG...",
+  "OPENAI_API_KEY": "sk-...",
+  "MONGODB_URI": "mongodb+srv://user:pw@cluster.mongodb.net/?retryWrites=true",
+  "REDIS_URL": "rediss://:password@redis.example.com:6379",
+  "CONFLUENCE_BASE_URL": "https://acme.atlassian.net/wiki"
+}
+```
+
+Then set Lambda env vars:
+
+```
+USE_SECRETS_MANAGER=true
+SECRETS_MANAGER_SECRET_ID=intentera/rag/prod
+AWS_REGION=us-east-1
+```
+
+The loader at `config/secrets.js` merges the secret into `process.env` before
+`appConfig.js` validates.
+
+---
+
+## 14. Tradeoffs and future improvements
+
+- **Single-run ingestion** works up to a few thousand tickets. For very large
+orgs, fan out via SQS → per-ticket Lambda workers.
+- `**text-embedding-3-small`** is cost-effective. For higher retrieval quality,
+switch to `text-embedding-3-large` (update `OPENAI_EMBEDDING_DIMENSIONS` to
+3072 and recreate the Atlas vector index).
+- **Atlas Vector Search** requires M10+ clusters. A self-hosted alternative
+could be pgvector or OpenSearch.
+- **Comment-edit detection** currently relies on the parent issue's `updated`
+timestamp, which Jira always bumps when comments change. Per-comment diff
+detection would require storing per-comment hashes and is only worth doing
+if rebuild cost becomes a concern.
+- **Confluence TTL cache** could reduce API pressure. Out of scope for the
+current build since the requirement is strictly "live-fetch".
+- **Retry budget** is currently 5 attempts / 8s cap. For very noisy networks
+you can raise `baseDelayMs` / `maxAttempts` via `withRetry` call sites.
+- **Distributed locking** uses a single-key `SET NX EX`. For multi-region
+deployments, swap in Redlock.
 

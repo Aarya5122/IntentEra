@@ -42,11 +42,11 @@ const {
  * @returns {"incremental"|"full"}
  */
 function resolveMode(event, envDefault) {
-  const candidate = (event?.mode || envDefault || 'incremental').toLowerCase();
-  if (candidate !== 'incremental' && candidate !== 'full') {
-    throw new Error(`Invalid mode "${candidate}" — expected "incremental" or "full"`);
+  const mode = (event?.mode || envDefault || 'incremental').toLowerCase();
+  if (mode !== 'incremental' && mode !== 'full') {
+    throw new Error(`Invalid mode "${mode}" — expected "incremental" or "full"`);
   }
-  return candidate;
+  return mode;
 }
 
 /**
@@ -58,11 +58,11 @@ function resolveMode(event, envDefault) {
  * @returns {"jira"|"github"}
  */
 function resolveSource(event, envDefault) {
-  const candidate = (event?.source || envDefault || 'jira').toLowerCase();
-  if (candidate !== 'jira' && candidate !== 'github') {
-    throw new Error(`Invalid source "${candidate}" — expected "jira" or "github"`);
+  const source = (event?.source || envDefault || 'jira').toLowerCase();
+  if (source !== 'jira' && source !== 'github') {
+    throw new Error(`Invalid source "${source}" — expected "jira" or "github"`);
   }
-  return candidate;
+  return source;
 }
 
 /**
