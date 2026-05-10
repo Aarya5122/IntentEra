@@ -131,6 +131,7 @@ Required only when `GITHUB_ENABLED=true`. See
 | `OPENAI_EMBEDDING_MODEL` | No | `text-embedding-3-small` | Any OpenAI embedding model. If you change this, update the Atlas vector index's `numDimensions`. |
 | `OPENAI_EMBEDDING_DIMENSIONS` | No | `1536` | Must match the model's output size AND the Atlas vector index. |
 | `OPENAI_EMBEDDING_BATCH_SIZE` | No | `64` | How many texts are embedded per request. Raise if Mongo + OpenAI throughput is under-used; lower if you hit payload limits. |
+| `OPENAI_CHAT_MODEL` | No | `gpt-4o-mini` | Chat-completion model used by the chat handler (`src/handler/chat.handler`). Must support `response_format=json_object`. Only consumed when the chat feature is in use; see [code-chat-runbook.md](code-chat-runbook.md). |
 
 ---
 
@@ -177,6 +178,40 @@ At retrieval time you can also pass `source` on the request body:
   in parallel, and returns the best combined results sorted by score.
   Each result is tagged with its `source` and, for GitHub, its
   `entityType` (`commit`, `pullRequest`, or `issue`).
+
+---
+
+## Chat feature (extension + Lambda /chat)
+
+These variables are consumed by the chat handler at
+`src/handler/chat.handler` and tune the multi-query RAG fan-out. They
+have safe defaults — leave them unset unless you are tuning cost or
+quality. See [code-chat-runbook.md](code-chat-runbook.md) for how to
+turn the chat feature on, and [code-chat.md](code-chat.md) for the wire
+contract.
+
+| Variable | Default | What it does |
+|---|---|---|
+| `CHAT_PER_VECTOR_TOP_K` | `3` | Per-query topK in the multi-query fan-out. The Lambda runs `1 + commitCount` separate vector queries (the user question plus each commit subject) and pulls this many hits from each. Total Atlas hits per request ≈ `CHAT_PER_VECTOR_TOP_K * (1 + commitCount)`. |
+| `CHAT_MERGED_TOP_N` | `12` | Cap on the merged, de-duplicated hit list passed to the LLM after combining all per-query results. |
+| `CHAT_MAX_LOCAL_COMMITS` | `50` | Defensive cap on how many local commits a single chat request may include. Protects the Lambda from oversized payloads. |
+
+The chat-completion model is configured via `OPENAI_CHAT_MODEL` in the
+[OpenAI](#openai-secret) section above.
+
+---
+
+## Local git agent
+
+These variables are read **only** by `npm run agent` (i.e. the Node
+process started by `node src/cli/runner.js agent`). The Lambda ignores
+them. The agent is the local-only piece described in
+[code-chat-runbook.md](code-chat-runbook.md#step-2--run-the-local-git-agent).
+
+| Variable | Default | What it does |
+|---|---|---|
+| `AGENT_PORT` | `8787` | Port the agent listens on (loopback only). If you change this, also update `intentera.agentUrl` in your IDE settings to match. Must be 1–65535. |
+| `AGENT_ALLOWED_PROJECT_ROOTS` | *(empty)* | Optional safety allowlist. Comma-separated absolute path prefixes; the agent will reject any `projectPath` that does not start with one of these. Empty = any absolute path containing a `.git/` directory is acceptable. |
 
 ---
 

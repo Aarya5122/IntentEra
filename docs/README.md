@@ -58,6 +58,19 @@ and GitHub fit into the same system.
   outputs to confirm Jira ingestion, GitHub ingestion, and retrieval
   all succeeded.
 
+### "I want to use the chat extension."
+
+- [code-chat-runbook.md](code-chat-runbook.md) — three-step run guide
+  for the VS Code / Cursor chat panel: deploy the chat Lambda, run the
+  local git agent, install the extension.
+- [deploy-chat-lambda.md](deploy-chat-lambda.md) — beginner-friendly
+  click-by-click guide to deploying just the `/chat` Lambda + route on
+  top of an already-deployed ingest + retrieve setup.
+- [code-chat.md](code-chat.md) — architecture, wire formats, privacy
+  notes, and operational tips for the chat feature.
+- [../extension/README.md](../extension/README.md) — IDE-side install
+  detail and settings reference.
+
 ### "Something went wrong."
 
 - [debugging-and-troubleshooting.md](debugging-and-troubleshooting.md)
@@ -94,6 +107,8 @@ and GitHub fit into the same system.
 - [overview.md](overview.md)
 - [architecture.md](architecture.md)
 - [execution-lifecycle.md](execution-lifecycle.md)
+- [code-chat.md](code-chat.md) — chat feature architecture, wire format,
+  privacy.
 
 **Setup**
 - [getting-started.md](getting-started.md)
@@ -107,6 +122,10 @@ and GitHub fit into the same system.
 **Running**
 - [local-development.md](local-development.md)
 - [aws-deployment.md](aws-deployment.md)
+- [deploy-chat-lambda.md](deploy-chat-lambda.md) — deploying just the
+  chat Lambda when ingest + retrieve are already up.
+- [code-chat-runbook.md](code-chat-runbook.md) — three-step guide for
+  the VS Code / Cursor chat extension.
 
 **Reference**
 - [configuration-reference.md](configuration-reference.md)

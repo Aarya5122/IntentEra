@@ -40,8 +40,11 @@ const { handler: retrieveHandler } = require('../handler/retrieve');
 const {
   buildIngestionDeps,
   buildGithubIngestionDeps,
+  loadConfig,
   teardown,
 } = require('../utils/wiring');
+const { startAgent } = require('../agent/server');
+const { createLogger } = require('../utils/logger');
 
 /**
  * Parses simple `--flag value` pairs from process.argv. Boolean flags are
@@ -155,6 +158,38 @@ async function printState(source) {
 }
 
 /**
+ * Boots the local git agent on `cfg.chat.agentPort` (default 8787) and keeps
+ * the process alive until the user hits Ctrl+C. Used by `npm run agent` so
+ * the VS Code / Cursor extension has somewhere to ask for git history.
+ *
+ * NOTE: this does NOT call `teardown()` because the agent is long-running
+ * and never reaches the CLI's `finally` clause.
+ *
+ * @returns {Promise<void>}
+ */
+async function runAgent() {
+  // The agent only needs the chat config block (port, allowlist, caps). We
+  // intentionally avoid `buildChatDeps()` here to keep the agent free of
+  // OpenAI / Mongo connections — it is purely a local git proxy.
+  const cfg = await loadConfig();
+  const logger = createLogger({ app: 'intentera', role: 'agent-cli' });
+  const { server, url } = await startAgent({ cfg, logger });
+
+  console.log(`IntentEra local git agent ready at ${url}`);
+  console.log('Press Ctrl+C to stop.');
+
+  // Keep the event loop alive and shut down cleanly on signals.
+  await new Promise((resolve) => {
+    const stop = (signal) => {
+      console.log(`\n${signal} received — shutting down agent...`);
+      server.close(() => resolve());
+    };
+    process.once('SIGINT', () => stop('SIGINT'));
+    process.once('SIGTERM', () => stop('SIGTERM'));
+  });
+}
+
+/**
  * Prints usage help.
  */
 function printHelp() {
@@ -167,6 +202,7 @@ function printHelp() {
       '  full                                 Simulate a forced full-import invocation.',
       '  query "..."                          Simulate a retrieval call.',
       '  state                                Print the current Redis sync state.',
+      '  agent                                Start the local git agent on AGENT_PORT (default 8787).',
       '',
       'Common options:',
       '  --source jira|github|both            jira (default) for ingest/state,',
@@ -238,6 +274,15 @@ async function main() {
           throw new Error('state command requires --source jira or --source github');
         }
         await printState(/** @type {"jira"|"github"} */ (source));
+        break;
+      }
+      case 'agent':
+      case 'agent-server': {
+        // Long-running; we don't tear down on exit because the user stops
+        // the process with Ctrl+C.
+        await runAgent();
+        // After SIGINT we fall through to the finally to release Mongo/Redis
+        // (which were never opened by the agent path, but teardown is idempotent).
         break;
       }
       case 'help':

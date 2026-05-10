@@ -90,6 +90,17 @@ let cached = null;
  * @property {string} embeddingModel
  * @property {number} embeddingDimensions
  * @property {number} batchSize
+ * @property {string} chatModel  Chat completions model used by the chat handler.
+ */
+
+/**
+ * @typedef {Object} ChatConfig
+ * @property {number} perVectorTopK     Per-query topK in the multi-query RAG fan-out.
+ * @property {number} mergedTopN        Cap on merged hits returned to the LLM.
+ * @property {number} maxLocalCommits   Cap on commits the Lambda accepts per request.
+ * @property {number} agentPort         Port the local git agent listens on.
+ * @property {string[]} allowedProjectRoots
+ *           Optional allowlist of absolute path prefixes the local agent will accept.
  */
 
 /**
@@ -122,6 +133,7 @@ let cached = null;
  * @property {OpenAIConfig} openai
  * @property {ChunkingConfig} chunking
  * @property {RetrievalConfig} retrieval
+ * @property {ChatConfig} chat
  */
 
 /**
@@ -316,6 +328,9 @@ function buildConfig() {
       }),
       embeddingDimensions: readNumber('OPENAI_EMBEDDING_DIMENSIONS', 1536),
       batchSize: readNumber('OPENAI_EMBEDDING_BATCH_SIZE', 64),
+      // Chat completions model used by the chat handler. gpt-4o-mini is a
+      // strong default: cheap, supports JSON-mode output, fast.
+      chatModel: readString('OPENAI_CHAT_MODEL', { fallback: 'gpt-4o-mini' }),
     },
 
     chunking: {
@@ -330,6 +345,23 @@ function buildConfig() {
       defaultTopK: readNumber('RETRIEVAL_DEFAULT_TOP_K', 8),
       maxTopK: readNumber('RETRIEVAL_MAX_TOP_K', 25),
     },
+
+    chat: {
+      // Multi-query RAG fan-out: each commit subject + the user question is
+      // embedded and used as a separate vector-search query. Keep this small
+      // because the total work is perVectorTopK * (1 + commitCount) hits.
+      perVectorTopK: readNumber('CHAT_PER_VECTOR_TOP_K', 3),
+      // Cap on the merged, de-duplicated hit list passed to the LLM.
+      mergedTopN: readNumber('CHAT_MERGED_TOP_N', 12),
+      // Defensive cap on how many local commits a single chat request may
+      // include; protects the Lambda from oversized payloads.
+      maxLocalCommits: readNumber('CHAT_MAX_LOCAL_COMMITS', 50),
+      // Local-only: the git agent reads this; the Lambda happily ignores it.
+      agentPort: readNumber('AGENT_PORT', 8787),
+      // Optional safety allowlist used by the local git agent. Empty array =
+      // any absolute path containing a .git directory is acceptable.
+      allowedProjectRoots: readList('AGENT_ALLOWED_PROJECT_ROOTS'),
+    },
   };
 
   // ---- Cross-field sanity checks ------------------------------------------
@@ -343,6 +375,18 @@ function buildConfig() {
     throw new Error(
       'RETRIEVAL_DEFAULT_TOP_K must be <= RETRIEVAL_MAX_TOP_K'
     );
+  }
+  if (cfg.chat.perVectorTopK <= 0) {
+    throw new Error('CHAT_PER_VECTOR_TOP_K must be > 0');
+  }
+  if (cfg.chat.mergedTopN <= 0) {
+    throw new Error('CHAT_MERGED_TOP_N must be > 0');
+  }
+  if (cfg.chat.maxLocalCommits <= 0) {
+    throw new Error('CHAT_MAX_LOCAL_COMMITS must be > 0');
+  }
+  if (cfg.chat.agentPort <= 0 || cfg.chat.agentPort > 65535) {
+    throw new Error('AGENT_PORT must be between 1 and 65535');
   }
   if (cfg.github.enabled) {
     if (cfg.github.staleBranchDays <= 0) {

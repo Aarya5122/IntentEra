@@ -40,10 +40,12 @@ const { GithubClient } = require('../github/client');
 const { GithubCommitFetcher } = require('../github/commits/fetcher');
 const { GithubPullRequestFetcher } = require('../github/pullRequests/fetcher');
 const { GithubIssueFetcher } = require('../github/issues/fetcher');
+const { LlmAnswerer } = require('../answer/llmAnswerer');
 
 // ----- Shared singletons -----
 let cachedCfg = null;
 let cachedEmbedder = null;
+let cachedAnswerer = null;
 
 // ----- Jira-scoped singletons -----
 let cachedJiraFetcher = null;
@@ -306,6 +308,58 @@ async function buildRetrievalDeps() {
 }
 
 /**
+ * Lazy-constructs the LLM answerer used by the chat handler. Shared so the
+ * OpenAI client connection pool is reused across warm invocations.
+ *
+ * @param {import('../../config/appConfig').AppConfig} cfg
+ * @param {ReturnType<typeof createLogger>} logger
+ * @returns {LlmAnswerer}
+ */
+function getAnswerer(cfg, logger) {
+  if (!cachedAnswerer) {
+    cachedAnswerer = new LlmAnswerer({
+      apiKey: cfg.openai.apiKey,
+      model: cfg.openai.chatModel,
+      logger,
+    });
+  }
+  return cachedAnswerer;
+}
+
+/**
+ * Builds dependencies for the chat path. Mirrors `buildRetrievalDeps()` but
+ * also wires up the LLM answerer. Both vector stores are exposed; the chat
+ * orchestrator skips whichever is null/disabled.
+ *
+ * @returns {Promise<{
+ *   cfg: import('../../config/appConfig').AppConfig,
+ *   logger: ReturnType<typeof createLogger>,
+ *   embedder: Embedder,
+ *   jiraVectorStore: MongoVectorStore|null,
+ *   githubVectorStore: MongoVectorStore|null,
+ *   answerer: LlmAnswerer,
+ * }>}
+ */
+async function buildChatDeps() {
+  const cfg = await loadConfig();
+  const logger = createLogger({ app: 'intentera', role: 'chat' });
+
+  const embedder = getEmbedder(cfg, logger);
+  const jiraVectorStore = cfg.jira.enabled ? getJiraVectorStore(cfg, logger) : null;
+  const githubVectorStore = cfg.github.enabled ? getGithubVectorStore(cfg, logger) : null;
+  const answerer = getAnswerer(cfg, logger);
+
+  return {
+    cfg,
+    logger,
+    embedder,
+    jiraVectorStore,
+    githubVectorStore,
+    answerer,
+  };
+}
+
+/**
  * Tears down clients. Useful for the CLI runner so Node can exit cleanly.
  * In Lambda we rely on container shutdown.
  * @returns {Promise<void>}
@@ -320,6 +374,7 @@ async function teardown() {
 
   cachedCfg = null;
   cachedEmbedder = null;
+  cachedAnswerer = null;
   cachedJiraFetcher = null;
   cachedJiraConfluence = null;
   cachedJiraVectorStore = null;
@@ -338,5 +393,6 @@ module.exports = {
   buildIngestionDeps,
   buildGithubIngestionDeps,
   buildRetrievalDeps,
+  buildChatDeps,
   teardown,
 };

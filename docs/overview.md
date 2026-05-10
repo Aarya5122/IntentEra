@@ -9,8 +9,11 @@ page cover-to-cover — in plain English it explains:
 - What "full import" vs "incremental sync" means
 - Why we need Redis, MongoDB Atlas, OpenAI, AWS Lambda, and Secrets Manager
 - How the pieces connect
+- An optional **chat extension** for VS Code / Cursor that sits on top of
+  the RAG pipeline (see section 7b)
 
-When you are done here, move on to
+When you are done here, jump to **section 8** for the recommended
+reading order, and then move on to
 [getting-started.md](getting-started.md) for the hands-on walkthrough.
 
 ---
@@ -282,18 +285,121 @@ picture.
 
 ---
 
-## 8. Next steps
+## 7b. Optional: the chat extension
 
-Pick the page that matches what you want to do right now:
+On top of the ingestion + retrieval pipeline above, the project also
+ships an **optional VS Code / Cursor chat extension** that answers
+*"why is this code the way it is?"* for any file or selection. It is
+purely additive — turning it on does not change the older pipeline in
+any way.
 
-| I want to… | Go to |
+It adds two new moving pieces alongside the existing Lambdas:
+
+- A **chat Lambda** (`src/handler/chat.handler`) — does multi-query RAG
+  against the same Mongo Atlas collections, plus an OpenAI chat call.
+- A **local git agent** (`npm run agent`) — a loopback-only Node server
+  that reads `git log` from your working tree on demand.
+
+The third piece is the **extension itself**, installed in your IDE.
+
+If you don't need this, ignore section 7b and skip the chat-related
+pages in section 8 below.
+
+---
+
+## 8. Recommended reading order (zero → fully set up)
+
+Below is the **end-to-end path** through the docs to set up the complete
+project — both the core RAG pipeline and the optional chat extension.
+Follow the steps in order; each links to the doc that covers that step
+in detail.
+
+### Phase 1 — Understand the project (you are here)
+
+1. **[overview.md](overview.md)** *(this page)* — what the project does
+   and why each piece exists. Finish reading this page before moving on.
+2. *(Optional, deeper)* **[architecture.md](architecture.md)** — design
+   walkthrough: chunking strategy, Redis state shapes, Atlas index
+   definitions, tradeoffs.
+
+### Phase 2 — Provision the external services
+
+You only need the services for the sources you plan to ingest.
+Everything is free-tier-friendly for development.
+
+3. **[mongodb-atlas-setup.md](mongodb-atlas-setup.md)** — create the
+   Atlas cluster and the Jira + GitHub vector indexes. Required.
+4. **[redis-setup.md](redis-setup.md)** — run Redis locally (Docker is
+   easiest) or in AWS ElastiCache. Required.
+5. **[jira-confluence-setup.md](jira-confluence-setup.md)** — create the
+   Atlassian API token. Required if `JIRA_ENABLED=true`.
+6. **[github-setup.md](github-setup.md)** — create the GitHub PAT and
+   pick the repo to index. Required if `GITHUB_ENABLED=true`.
+7. **[openai-setup.md](openai-setup.md)** — get an OpenAI API key.
+   Required.
+8. *(Production only)* **[secrets-manager-setup.md](secrets-manager-setup.md)**
+   — stash all secrets in one AWS Secrets Manager secret.
+
+### Phase 3 — First end-to-end run on your laptop
+
+9. **[getting-started.md](getting-started.md)** — the hands-on
+   walkthrough that takes you from "just cloned the repo" to your first
+   successful incremental sync and retrieval query.
+10. **[local-development.md](local-development.md)** — the day-to-day
+    CLI reference (full vs. incremental, Jira vs. GitHub, retrieval
+    queries, debugging tips). Skim this once, return as a reference.
+11. **[execution-lifecycle.md](execution-lifecycle.md)** — what happens
+    before / during / after every run. Read this if anything in the CLI
+    output surprised you.
+12. **[verification.md](verification.md)** — concrete checks to confirm
+    your first ingestion + retrieval actually worked.
+
+### Phase 4 — Deploy to AWS
+
+13. **[aws-deployment.md](aws-deployment.md)** — Lambda packaging, the
+    two EventBridge rules (Jira + GitHub), API Gateway for retrieval,
+    and the IAM permissions each Lambda needs.
+
+### Phase 5 — Optional: turn on the chat extension
+
+If you want the VS Code / Cursor chat panel on top of the deployed
+pipeline:
+
+14. **[code-chat.md](code-chat.md)** — architecture, wire formats, and
+    the privacy / data-flow contract. Read this first to understand what
+    leaves your machine.
+15. **[code-chat-runbook.md](code-chat-runbook.md)** — three-step run
+    guide: deploy the chat Lambda, run the local git agent, install the
+    extension.
+16. **[../extension/README.md](../extension/README.md)** — IDE-side
+    install detail and the full settings reference.
+
+### Always-available references
+
+These are not part of the linear path. Open them as you need them.
+
+| When you need… | Open |
 |---|---|
-| Set up the whole thing from scratch | [getting-started.md](getting-started.md) |
-| Understand what happens before/during/after each run | [execution-lifecycle.md](execution-lifecycle.md) |
-| Confirm a run actually worked | [verification.md](verification.md) |
 | Look up an environment variable | [configuration-reference.md](configuration-reference.md) |
-| Run it on my laptop | [local-development.md](local-development.md) |
-| Deploy it to AWS | [aws-deployment.md](aws-deployment.md) |
-| Fix an error I just hit | [debugging-and-troubleshooting.md](debugging-and-troubleshooting.md) |
+| Fix an error you just hit | [debugging-and-troubleshooting.md](debugging-and-troubleshooting.md) |
+| Browse every doc by topic | [docs/README.md](README.md) |
+| Ready-to-paste JSON examples (EventBridge, payloads, Secrets Manager, Redis state) | [examples/](examples/) |
 
-Full index: [docs/README.md](README.md).
+### Minimum path if you just want it running
+
+If you don't care about deep understanding and just want a working
+deployment as fast as possible, the minimum path is:
+
+1. Skim sections 1–7 of this page.
+2. Provision services: [mongodb-atlas-setup.md](mongodb-atlas-setup.md),
+   [redis-setup.md](redis-setup.md), the source you want
+   ([jira-confluence-setup.md](jira-confluence-setup.md) or
+   [github-setup.md](github-setup.md)), and
+   [openai-setup.md](openai-setup.md).
+3. Follow [getting-started.md](getting-started.md) end to end.
+4. When local works, deploy with
+   [aws-deployment.md](aws-deployment.md).
+5. *(Optional)* Add the chat extension via
+   [code-chat-runbook.md](code-chat-runbook.md).
+
+Everything else is reference material you can come back to.

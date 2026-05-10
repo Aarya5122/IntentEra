@@ -293,6 +293,34 @@ details.
 
 ---
 
+## 7c. Running the local git agent (chat feature)
+
+Only needed if you also want to use the **chat extension** for VS Code
+or Cursor. The CLI runner exposes a long-lived `agent` mode that boots a
+loopback-only HTTP server which the extension calls for git history.
+
+```bash
+npm run agent
+# IntentEra local git agent ready at http://127.0.0.1:8787
+```
+
+You can verify it's healthy from another terminal:
+
+```bash
+curl http://127.0.0.1:8787/healthz
+```
+
+The agent shells out to `git log --no-patch` against your working tree
+and never makes outbound network calls. Optional env vars (`AGENT_PORT`,
+`AGENT_ALLOWED_PROJECT_ROOTS`) are documented in
+[configuration-reference.md](configuration-reference.md#local-git-agent).
+
+For the full three-step run guide (Lambda + agent + extension), see
+[code-chat-runbook.md](code-chat-runbook.md). Architecture and wire
+formats live in [code-chat.md](code-chat.md).
+
+---
+
 ## 8. Debugging tips
 
 ### Turn up the log level

@@ -8,6 +8,8 @@
     "cli:full": "node --no-deprecation src/cli/runner.js full",
     "cli:incremental": "node --no-deprecation src/cli/runner.js incremental",
     "cli:query": "node --no-deprecation src/cli/runner.js query",
+    "agent": "node --no-deprecation src/cli/runner.js agent",
+    "agent:dev": "AGENT_PORT=8787 node --no-deprecation src/cli/runner.js agent",
     "start": "node --no-deprecation src/cli/runner.js"
   },
   "keywords": [
@@ -32,10 +34,12 @@
     "axios": "^1.7.7",
     "cheerio": "^1.0.0",
     "dotenv": "^16.4.5",
+    "express": "^5.2.1",
     "ioredis": "^5.4.1",
     "mammoth": "^1.8.0",
     "mongodb": "^6.8.0",
     "openai": "^4.58.1",
-    "pdf-parse": "^1.1.1"
+    "pdf-parse": "^1.1.1",
+    "simple-git": "^3.36.0"
   }
 }

@@ -11,8 +11,10 @@
 
 const { handler: ingestHandler } = require('./handler/ingest');
 const { handler: retrieveHandler } = require('./handler/retrieve');
+const { handler: chatHandler } = require('./handler/chat');
 
 module.exports = {
   ingest: ingestHandler,
   retrieve: retrieveHandler,
+  chat: chatHandler,
 };

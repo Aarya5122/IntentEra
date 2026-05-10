@@ -1,0 +1,224 @@
+/*
+ * IntentEra chat webview styles.
+ *
+ * We rely entirely on the VS Code theme variables so the panel feels native
+ * in both Light/Dark themes AND in Cursor (which exposes the same vars).
+ */
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  color: var(--vscode-foreground);
+  background: var(--vscode-sideBar-background, var(--vscode-editor-background));
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+.status {
+  padding: 6px 10px;
+  font-size: 0.85em;
+  background: var(--vscode-inputValidation-warningBackground, rgba(255, 200, 0, 0.15));
+  color: var(--vscode-inputValidation-warningForeground, var(--vscode-foreground));
+  border-bottom: 1px solid var(--vscode-panel-border, transparent);
+}
+
+.status.ok {
+  background: var(--vscode-textBlockQuote-background, rgba(0, 128, 0, 0.08));
+  color: var(--vscode-foreground);
+}
+
+.status.hidden { display: none; }
+
+#transcript {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.message {
+  border: 1px solid var(--vscode-panel-border, transparent);
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: var(--vscode-editorWidget-background, transparent);
+}
+
+.message.user {
+  background: var(--vscode-input-background);
+  border-color: var(--vscode-focusBorder, transparent);
+}
+
+.message .role {
+  font-size: 0.75em;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.7;
+  margin-bottom: 6px;
+}
+
+.message .answer {
+  white-space: pre-wrap;
+  line-height: 1.4;
+}
+
+.citations {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.citation-group h4 {
+  margin: 4px 0;
+  font-size: 0.85em;
+  opacity: 0.85;
+}
+
+.citation {
+  padding: 6px 8px;
+  border-radius: 4px;
+  background: var(--vscode-textCodeBlock-background, rgba(127, 127, 127, 0.08));
+  font-size: 0.9em;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.citation .head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.citation .id {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 0.85em;
+  opacity: 0.8;
+}
+
+.citation .reason {
+  opacity: 0.95;
+}
+
+.citation a {
+  color: var(--vscode-textLink-foreground);
+  text-decoration: none;
+}
+.citation a:hover { text-decoration: underline; }
+
+.retrieved-meta {
+  margin-top: 8px;
+  font-size: 0.75em;
+  opacity: 0.6;
+}
+
+#attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--vscode-panel-border, transparent);
+}
+
+#attachments:empty { display: none; }
+
+.attachment {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+  border-radius: 999px;
+  font-size: 0.85em;
+  max-width: 100%;
+}
+
+.attachment .path {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.attachment .remove {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 1em;
+  line-height: 1;
+  padding: 0;
+}
+
+#composer {
+  border-top: 1px solid var(--vscode-panel-border, transparent);
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--vscode-sideBar-background, var(--vscode-editor-background));
+}
+
+#question {
+  resize: vertical;
+  width: 100%;
+  font-family: inherit;
+  font-size: inherit;
+  padding: 6px 8px;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border, transparent);
+  border-radius: 4px;
+}
+
+#question:focus {
+  outline: 1px solid var(--vscode-focusBorder, transparent);
+}
+
+.composer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.hint {
+  font-size: 0.75em;
+  opacity: 0.65;
+}
+
+#send {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border: none;
+  padding: 6px 14px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+
+#send:hover { background: var(--vscode-button-hoverBackground); }
+
+#send:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.loading {
+  font-style: italic;
+  opacity: 0.7;
+}
+
+.error {
+  border-color: var(--vscode-errorForeground, transparent);
+  color: var(--vscode-errorForeground);
+}

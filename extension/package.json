@@ -1,0 +1,130 @@
+{
+  "name": "intentera-chat",
+  "displayName": "IntentEra Chat",
+  "description": "Ask why a piece of code looks the way it does — backed by your local git history, Jira tickets, and GitHub PRs via the IntentEra RAG.",
+  "version": "0.1.0",
+  "publisher": "intentera",
+  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Aarya5122/IntentEra.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Aarya5122/IntentEra/issues"
+  },
+  "homepage": "https://github.com/Aarya5122/IntentEra#readme",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other",
+    "AI"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onView:intentera.chatView",
+    "onCommand:intentera.openChat",
+    "onCommand:intentera.askAboutSelection",
+    "onCommand:intentera.askAboutFile"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "intentera",
+          "title": "IntentEra",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "intentera": [
+        {
+          "type": "webview",
+          "id": "intentera.chatView",
+          "name": "Chat",
+          "contextualTitle": "IntentEra Chat"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "intentera.openChat",
+        "title": "IntentEra: Open Chat"
+      },
+      {
+        "command": "intentera.askAboutSelection",
+        "title": "IntentEra: Ask about selection"
+      },
+      {
+        "command": "intentera.askAboutFile",
+        "title": "IntentEra: Ask about this file"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "intentera.askAboutSelection",
+          "when": "editorHasSelection",
+          "group": "navigation@99"
+        },
+        {
+          "command": "intentera.askAboutFile",
+          "when": "editorTextFocus",
+          "group": "navigation@99"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "intentera.askAboutFile",
+          "when": "resourceScheme == file",
+          "group": "navigation@99"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "IntentEra Chat",
+      "properties": {
+        "intentera.lambdaChatUrl": {
+          "type": "string",
+          "default": "",
+          "description": "URL of the IntentEra chat Lambda endpoint, e.g. https://abc123.execute-api.us-east-1.amazonaws.com/chat."
+        },
+        "intentera.lambdaApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Optional API Gateway key. Sent as the `x-api-key` header.",
+          "markdownDescription": "Optional API Gateway key. Sent as the `x-api-key` header."
+        },
+        "intentera.agentUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:8787",
+          "description": "URL of the local IntentEra git agent. Start it with `npm run agent` in the IntentEra repo."
+        },
+        "intentera.maxLocalCommits": {
+          "type": "number",
+          "default": 50,
+          "description": "Cap on commits the local agent extracts per request."
+        },
+        "intentera.requestTimeoutMs": {
+          "type": "number",
+          "default": 60000,
+          "description": "How long to wait for the Lambda chat response before giving up."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "package": "vsce package",
+    "vscode:prepublish": "node esbuild.js --production"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.80.0",
+    "esbuild": "^0.21.5",
+    "typescript": "^5.5.0"
+  }
+}

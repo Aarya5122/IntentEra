@@ -41,6 +41,13 @@ After your first run, use
 and **[docs/debugging-and-troubleshooting.md](docs/debugging-and-troubleshooting.md)**
 when it doesn't.
 
+> **New: Chat extension for VS Code & Cursor.**
+> A sidebar chat panel that answers *"why is this code the way it is?"*
+> for any file or selection, by combining your **local git history** with
+> the Jira + GitHub RAGs you've already ingested. See
+> [docs/code-chat.md](docs/code-chat.md) for the architecture and
+> [extension/README.md](extension/README.md) for install + usage.
+
 For the deeper design writeup, see
 [docs/architecture.md](docs/architecture.md). For a list of every doc
 available (task-based navigation), see [docs/README.md](docs/README.md).
@@ -151,6 +158,16 @@ Framework, CDK, raw ZIP). At a minimum you need:
    - Timeout: 15–30 seconds
    - Trigger: API Gateway HTTP API POST route (e.g. `POST /retrieve`).
 
+2b. **Chat Lambda** (used by the VS Code / Cursor extension)
+   - Handler: `src/handler/chat.handler`
+   - Memory: 1024 MB recommended
+   - Timeout: 30–60 seconds
+   - Trigger: API Gateway HTTP API POST route (e.g. `POST /chat`).
+   - Extra env vars: `OPENAI_CHAT_MODEL` (default `gpt-4o-mini`),
+     `CHAT_PER_VECTOR_TOP_K`, `CHAT_MERGED_TOP_N`,
+     `CHAT_MAX_LOCAL_COMMITS`. See
+     [docs/code-chat.md](docs/code-chat.md) for the wire contract.
+
 3. **Atlas Vector Search indexes** — create them in the Atlas UI using
    the JSON definitions in
    [`docs/mongodb-atlas-setup.md`](docs/mongodb-atlas-setup.md). You need
@@ -204,6 +221,13 @@ Beginner-friendly walkthroughs:
   every env var in plain language.
 - [docs/debugging-and-troubleshooting.md](docs/debugging-and-troubleshooting.md)
   — common errors and how to fix them (Jira + GitHub + multi-source).
+
+Chat extension:
+
+- [docs/code-chat.md](docs/code-chat.md) — full architecture, wire format,
+  privacy notes, ops tips.
+- [extension/README.md](extension/README.md) — install + configure the
+  VS Code / Cursor extension.
 
 Per-service setup:
 
