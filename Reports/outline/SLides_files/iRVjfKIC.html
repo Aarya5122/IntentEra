@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<!-- saved from url=(0044)https://www.genspark.ai/api/files/s/iRVjfKIC -->
+<html lang="en" data-theme="light" style=""><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Title Slide</title>
+<link href="./tailwind.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com/" rel="preconnect">
+<link href="./css2" rel="stylesheet">
+<link href="./all.min.css" rel="stylesheet">
+<style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f3f4f6;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+        .slide-container {
+            width: 1280px;
+            height: 720px;
+            background-color: #ffffff;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .font-serif-title {
+            font-family: 'Playfair Display', serif;
+        }
+        /* Geometric accent */
+        .accent-shape {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 35%;
+            height: 100%;
+            background-color: #f8fafc;
+            clip-path: polygon(25% 0, 100% 0, 100% 100%, 0% 100%);
+            z-index: 0;
+        }
+        .accent-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 12px;
+            background-color: #1e3a8a; /* Academic Navy Blue */
+            z-index: 10;
+        }
+        .content-area {
+            position: relative;
+            z-index: 10;
+            padding: 64px 80px 64px 100px; /* Left padding accounts for accent line */
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+    </style>
+<style id="slide-selected-style">
+  [data-slide-selected]::before
+  /* [data-slide-hover-selected]::before */ {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    width: 100%;
+    height: 100%;
+    box-sizing: content-box;
+    padding: 4px;
+    border-radius: 0px;
+    outline: 2px solid #0f7fff !important;
+    z-index: 10000;
+    pointer-events: none;
+  }
+
+ /* [data-slide-hover-selected], */
+  [data-slide-selected] {
+    position: relative;
+    outline: none;
+    cursor: default;
+  }
+
+  img[data-slide-selected],
+  img[data-slide-hover-selected],
+  [data-slide-hover-selected],
+  [item-slide-click-selected],
+  [item-slide-selected] {
+    border: 2px solid #0f7fff !important;
+  }
+
+
+</style><style id="genspark-badge">
+    .genspark-badge-button {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background-color: #333;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .genspark-modal {
+      display: none;
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      z-index: 10000;
+      justify-content: end;
+    }
+    
+    .genspark-modal-content {
+      background-color: white;
+      border-radius: 8px;
+      max-width: 450px;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 20px;
+      position: relative;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      font-size: 14px;
+    }
+    @media (max-width: 768px) {
+      .genspark-modal-content {
+        max-width: 90%;
+      }
+    }
+    
+    .genspark-close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 20px;
+      cursor: pointer;
+      background: none;
+      border: none;
+    }
+    
+    .genspark-title {
+      margin-bottom: 8px;
+      font-weight: normal;
+      display: inline;
+      font-size: 14px;
+    }
+    
+    .genspark-report {
+      color: #909499;
+      text-decoration: underline;
+      cursor: pointer;
+      margin-bottom: 14px;
+      display: inline;
+    }
+    
+    .genspark-info {
+      margin: 25px 0;
+      color: #333;
+      font-size: 14px;
+    }
+    
+    .genspark-buttons {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .genspark-remove-btn {
+      background-color: #f5f5f5;
+      border: 1px solid #ddd;
+      color: #333;
+      padding: 4px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      flex: 1;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    
+    .genspark-go-btn {
+      background-color: #222;
+      border: none;
+      color: white;
+      padding: 4px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      flex: 1;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+  </style></head>
+<body style="">
+<div class="slide-container">
+<!-- Background Elements -->
+<div class="accent-line"></div>
+<div class="accent-shape"></div>
+<div class="content-area" style="transform: translate(-1.21519px, 0px);">
+<!-- Header Meta -->
+<div class="flex justify-between items-start w-full mb-8">
+<div>
+<p class="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-1">Master's Dissertation Defense</p>
+<p class="text-sm font-medium text-gray-500">February 2026</p>
+</div>
+<!-- Placeholder for Logo if needed, kept text for now -->
+<div class="text-right">
+<p class="text-lg font-bold text-gray-800 tracking-tight">BITS Pilani</p>
+<p class="text-xs text-gray-400">Birla Institute of Technology &amp; Science</p>
+</div>
+</div>
+<!-- Main Title Section -->
+<div class="flex-grow flex flex-col justify-center mb-12">
+<h1 class="font-serif-title text-6xl text-gray-900 leading-tight mb-6">
+                    Semantic Reconstruction of <br>
+<span class="text-blue-900">Software Intent</span>
+</h1>
+<div class="flex items-start">
+<div class="w-1 bg-blue-900 h-16 mr-6 rounded-full opacity-80"></div>
+<p class="text-xl text-gray-600 leading-relaxed font-light max-w-3xl">
+                        A Cloud-Hosted Agentic AI Solution for Requirement Traceability in Production-Grade Codebases
+                    </p>
+</div>
+</div>
+<!-- Footer Details Grid -->
+<div class="grid grid-cols-12 gap-8 border-t border-gray-200 pt-8 mt-auto">
+<!-- Presenter Info -->
+<div class="col-span-5">
+<p class="text-xs font-bold text-blue-900 uppercase tracking-widest mb-3">Presented By</p>
+<p class="text-2xl font-semibold text-gray-800 mb-1">Aarya Nanndaann Singh MN</p>
+<p class="text-sm text-gray-500 mb-4">BITS ID: <span class="font-mono text-gray-700">2024MT03013</span></p>
+<div class="flex items-center text-gray-600 mt-2">
+<i class="fas fa-graduation-cap text-gray-400 mr-3 text-sm"></i>
+<p class="text-sm font-medium">M.Tech in Cloud Computing</p>
+</div>
+</div>
+<!-- Program/Research Info -->
+<div class="col-span-7 grid grid-cols-2 gap-8">
+<div>
+<p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Research Area</p>
+<p class="text-base text-gray-700 font-medium leading-snug">
+                            Artificial Intelligence &amp; <br> Cloud Computing
+                        </p>
+</div>
+<div>
+<p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">employing ORganisation</p>
+<div class="bg-white border border-gray-100 shadow-sm rounded-lg p-3 inline-block">
+<div class="flex items-center">
+<div class="bg-blue-50 rounded p-2 mr-3">
+<i class="fas fa-building text-blue-800 text-xs"></i>
+</div>
+<div>
+<p class="text-sm font-bold text-gray-800">Aqueralabs India</p>
+<p class="text-xs text-gray-500">Pvt Ltd, Bangalore</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<script defer="" src="./vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon="{&quot;rayId&quot;:&quot;9d54d6774e443d2c&quot;,&quot;serverTiming&quot;:{&quot;name&quot;:{&quot;cfExtPri&quot;:true,&quot;cfEdge&quot;:true,&quot;cfOrigin&quot;:true,&quot;cfL4&quot;:true,&quot;cfSpeedBrain&quot;:true,&quot;cfCacheStatus&quot;:true}},&quot;version&quot;:&quot;2025.9.1&quot;,&quot;token&quot;:&quot;4edd5f8ec12a48cfa682ab8261b80a79&quot;}" crossorigin="anonymous"></script>
+<script src="./slide-inner.js"></script>
+        <script id="html_badge_script2" src="./html_badge.js"></script>
+        </body></html>

@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<!-- saved from url=(0044)https://www.genspark.ai/api/files/s/7XGqjJmU -->
+<html lang="en" data-theme="light" style=""><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Conclusion &amp; Vision</title>
+<link href="./tailwind.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com/" rel="preconnect">
+<link href="./css2(22)" rel="stylesheet">
+<link href="./all(1).min.css" rel="stylesheet">
+<style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f3f4f6;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+        .slide-container {
+            width: 1280px;
+            height: 720px;
+            background-color: #ffffff;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .header-accent {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            background-color: #1e3a8a; /* Academic Navy Blue */
+            z-index: 10;
+        }
+        .content-wrapper {
+            padding: 48px 64px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            position: relative;
+            z-index: 5;
+        }
+        
+        /* Background Pattern */
+        .bg-dots {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
+            opacity: 0.3;
+            z-index: 0;
+        }
+
+        /* Problem Statement Box */
+        .problem-box {
+            background-color: #fef2f2;
+            border-left: 6px solid #ef4444;
+            padding: 24px 32px;
+            border-radius: 0 12px 12px 0;
+            margin-bottom: 40px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Solution Pillars */
+        .pillar-card {
+            background-color: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 32px 24px;
+            text-align: center;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+            transition: transform 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .pillar-card:hover {
+            transform: translateY(-5px);
+            border-color: #bfdbfe;
+        }
+
+        .pillar-icon-wrapper {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px auto;
+            font-size: 28px;
+        }
+
+        /* Vision Section */
+        .vision-container {
+            background-color: #1e3a8a;
+            border-radius: 20px;
+            padding: 40px;
+            color: white;
+            position: relative;
+            margin-top: auto;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            box-shadow: 0 20px 25px -5px rgba(30, 58, 138, 0.25);
+        }
+        
+        .vision-bg-icon {
+            position: absolute;
+            right: -20px;
+            bottom: -20px;
+            font-size: 200px;
+            color: white;
+            opacity: 0.05;
+            transform: rotate(-15deg);
+        }
+
+        .highlight-text {
+            color: #60a5fa;
+            font-weight: 700;
+        }
+        
+        /* Connector Lines */
+        .connector-line {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            height: 20px;
+            width: 2px;
+            background-color: #cbd5e1;
+            z-index: 0;
+        }
+        
+        .pillar-container {
+            position: relative;
+        }
+
+    </style>
+<link href="./css2(23)" rel="stylesheet"><link href="./css2(24)" rel="stylesheet"><link href="./css2(25)" rel="stylesheet"><link href="./css2(26)" rel="stylesheet"><style id="slide-selected-style">
+  [data-slide-selected]::before
+  /* [data-slide-hover-selected]::before */ {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    width: 100%;
+    height: 100%;
+    box-sizing: content-box;
+    padding: 4px;
+    border-radius: 0px;
+    outline: 2px solid #0f7fff !important;
+    z-index: 10000;
+    pointer-events: none;
+  }
+
+ /* [data-slide-hover-selected], */
+  [data-slide-selected] {
+    position: relative;
+    outline: none;
+    cursor: default;
+  }
+
+  img[data-slide-selected],
+  img[data-slide-hover-selected],
+  [data-slide-hover-selected],
+  [item-slide-click-selected],
+  [item-slide-selected] {
+    border: 2px solid #0f7fff !important;
+  }
+
+
+</style><style id="genspark-badge">
+    .genspark-badge-button {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background-color: #333;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .genspark-modal {
+      display: none;
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      z-index: 10000;
+      justify-content: end;
+    }
+    
+    .genspark-modal-content {
+      background-color: white;
+      border-radius: 8px;
+      max-width: 450px;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 20px;
+      position: relative;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      font-size: 14px;
+    }
+    @media (max-width: 768px) {
+      .genspark-modal-content {
+        max-width: 90%;
+      }
+    }
+    
+    .genspark-close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 20px;
+      cursor: pointer;
+      background: none;
+      border: none;
+    }
+    
+    .genspark-title {
+      margin-bottom: 8px;
+      font-weight: normal;
+      display: inline;
+      font-size: 14px;
+    }
+    
+    .genspark-report {
+      color: #909499;
+      text-decoration: underline;
+      cursor: pointer;
+      margin-bottom: 14px;
+      display: inline;
+    }
+    
+    .genspark-info {
+      margin: 25px 0;
+      color: #333;
+      font-size: 14px;
+    }
+    
+    .genspark-buttons {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .genspark-remove-btn {
+      background-color: #f5f5f5;
+      border: 1px solid #ddd;
+      color: #333;
+      padding: 4px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      flex: 1;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    
+    .genspark-go-btn {
+      background-color: #222;
+      border: none;
+      color: white;
+      padding: 4px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      flex: 1;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+  </style></head>
+<body style="">
+<div class="slide-container">
+<div class="header-accent"></div>
+<div class="bg-dots"></div>
+<div class="content-wrapper">
+<!-- Header -->
+<div class="mb-8 relative z-10">
+<div class="flex items-center mb-2">
+<span class="bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-0.5 rounded uppercase tracking-wide mr-3">Summary</span>
+<p class="text-sm text-gray-500 font-medium">Research Conclusion</p>
+</div>
+<h1 class="font-serif text-4xl text-gray-900 font-bold">Bridging the Intent Gap</h1>
+</div>
+<!-- Problem Statement (The "Why") -->
+<div class="problem-box relative z-10 w-3/4">
+<div class="mr-6 text-red-500 text-3xl">
+<i class="fas fa-exclamation-triangle"></i>
+</div>
+<div>
+<h3 class="text-lg font-bold text-gray-800 mb-1">The Core Problem</h3>
+<p class="text-gray-600 font-medium">Modern software development suffers from <span style="">Intent Loss </span><span style="color: rgb(10, 43, 108);">-</span><span style="">&nbsp;</span>developers know <em>what</em> the code does, but the rationale of <em>why</em> is fragmented and lost.</p>
+</div>
+</div>
+<!-- The Solution Approach (The "How") -->
+<div class="grid grid-cols-3 gap-8 mb-10 relative z-10">
+<!-- Pillar 1 -->
+<div class="pillar-container">
+<div class="pillar-card border-t-4 border-blue-500">
+<div class="pillar-icon-wrapper bg-blue-50 text-blue-600">
+<i class="fas fa-puzzle-piece"></i>
+</div>
+<h3 class="font-bold text-gray-800 text-lg mb-2">Reconstruct Rationale</h3>
+<p class="text-sm text-gray-500 leading-relaxed">Aggregates and synthesizes fragmented logic from Git, JIRA, and PRs.</p>
+</div>
+</div>
+<!-- Pillar 2 -->
+<div class="pillar-container">
+<div class="pillar-card border-t-4 border-purple-500">
+<div class="pillar-icon-wrapper bg-purple-50 text-purple-600">
+<i class="fas fa-project-diagram"></i>
+</div>
+<h3 class="font-bold text-gray-800 text-lg mb-2">Semantic Connection</h3>
+<p class="text-sm text-gray-500 leading-relaxed">Establishes intelligent traceability links between abstract requirements and concrete code.</p>
+</div>
+</div>
+<!-- Pillar 3 -->
+<div class="pillar-container">
+<div class="pillar-card border-t-4 border-emerald-500">
+<div class="pillar-icon-wrapper bg-emerald-50 text-emerald-600">
+<i class="fas fa-robot"></i>
+</div>
+<h3 class="font-bold text-gray-800 text-lg mb-2">Embedded Intelligence</h3>
+<p class="text-sm text-gray-500 leading-relaxed">Delivers context directly into developer workflows via agentic AI.</p>
+</div>
+</div>
+</div>
+<!-- Vision Statement (The "Future") -->
+<div class="vision-container relative z-10 flex-grow">
+<i class="fas fa-lightbulb vision-bg-icon"></i>
+<div class="mb-4">
+<span class="text-blue-200 uppercase tracking-[0.2em] text-xs font-bold border border-blue-400 px-3 py-1 rounded-full">Research Vision</span>
+</div>
+<h2 class="font-serif text-3xl leading-snug mb-2 relative z-10">
+                    "<span style="font-family: Roboto, sans-serif; font-size: 24px;">Transforming complex codebases into systems that are</span>&nbsp;<span style="font-size: 24px; font-weight: inherit; font-family: Roboto, sans-serif; color: rgb(180, 202, 244);">Understandable</span><span style="font-size: 1.875rem; font-weight: inherit; font-family: Roboto, sans-serif;">,</span><span style="font-size: 1.875rem; font-weight: inherit; font-family: Roboto, sans-serif; color: rgb(180, 202, 244);"> </span><span style="font-size: 24px; font-weight: inherit; font-family: Roboto, sans-serif; color: rgb(180, 202, 244);">Traceable<br></span><span style="font-size: 1.875rem; font-weight: inherit; font-family: Roboto, sans-serif;">&nbsp;</span><span style="font-size: 24px; font-weight: inherit; font-family: Roboto, sans-serif;">and</span><span style="font-size: 1.875rem; font-weight: inherit; font-family: Roboto, sans-serif;"> </span><span style="font-size: 24px; font-weight: inherit; font-family: Roboto, sans-serif; color: rgb(180, 202, 244);">I</span><span style="font-size: 24px; font-weight: inherit; font-family: Roboto, sans-serif; color: rgb(180, 202, 244);">ntent</span><span style="font-size: 1.875rem; font-weight: inherit; font-family: Roboto, sans-serif; color: rgb(180, 202, 244);">-</span><span style="font-size: 24px; font-weight: inherit; font-family: Roboto, sans-serif; color: rgb(180, 202, 244);">Aware</span><span style="font-size: 1.875rem; font-weight: inherit; font-family: Roboto, sans-serif;">.</span><span style="font-size: 24px; font-weight: inherit;">"</span></h2>
+<div class="w-24 h-1 bg-blue-400 mt-6 rounded-full"></div>
+</div>
+<!-- Footer -->
+<div class="mt-6 pt-2 border-t border-gray-200 flex justify-between items-center text-xs text-gray-400 relative z-10" style="transform: translate(-6.07591px, -20.6585px);">
+<p>M.Tech Dissertation</p>
+<p>Slide 14</p>
+</div>
+</div>
+</div>
+
+<script defer="" src="./vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon="{&quot;rayId&quot;:&quot;9d54d6775e4b3d2c&quot;,&quot;serverTiming&quot;:{&quot;name&quot;:{&quot;cfExtPri&quot;:true,&quot;cfEdge&quot;:true,&quot;cfOrigin&quot;:true,&quot;cfL4&quot;:true,&quot;cfSpeedBrain&quot;:true,&quot;cfCacheStatus&quot;:true}},&quot;version&quot;:&quot;2025.9.1&quot;,&quot;token&quot;:&quot;4edd5f8ec12a48cfa682ab8261b80a79&quot;}" crossorigin="anonymous"></script>
+<script src="./slide-inner.js"></script>
+        <script id="html_badge_script2" src="./html_badge.js"></script>
+        </body></html>

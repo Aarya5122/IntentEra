@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<!-- saved from url=(0044)https://www.genspark.ai/api/files/s/BoUtrYbX -->
+<html lang="en" data-theme="light" style=""><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Evaluation Strategy</title>
+<link href="./tailwind.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com/" rel="preconnect">
+<link href="./css2(1)" rel="stylesheet">
+<link href="./all(1).min.css" rel="stylesheet">
+<style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f3f4f6;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+        .slide-container {
+            width: 1280px;
+            height: 720px;
+            background-color: #ffffff;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .header-accent {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            background-color: #1e3a8a; /* Academic Navy Blue */
+            z-index: 10;
+        }
+        .content-wrapper {
+            padding: 48px 64px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            position: relative;
+            z-index: 5;
+        }
+        
+        /* Card Styles */
+        .eval-card {
+            background-color: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            border: 1px solid #e5e7eb;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s ease;
+        }
+        
+        .eval-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .card-header-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+            font-size: 20px;
+        }
+
+        /* Metric Item Styles */
+        .metric-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            background-color: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border-left: 3px solid transparent;
+        }
+        
+        .metric-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        /* Border Accents */
+        .border-t-quant { border-top: 5px solid #2563eb; }
+        .border-t-qual { border-top: 5px solid #059669; }
+        .border-t-env { border-top: 5px solid #7c3aed; }
+
+        /* Icon Colors */
+        .bg-quant { background-color: #eff6ff; color: #2563eb; }
+        .bg-qual { background-color: #ecfdf5; color: #059669; }
+        .bg-env { background-color: #f5f3ff; color: #7c3aed; }
+
+        .bg-metric-blue { background-color: white; color: #3b82f6; border: 1px solid #dbeafe; }
+        .bg-metric-green { background-color: white; color: #10b981; border: 1px solid #d1fae5; }
+        .bg-metric-purple { background-color: white; color: #8b5cf6; border: 1px solid #ede9fe; }
+
+        .metric-border-blue { border-left-color: #3b82f6; }
+        .metric-border-green { border-left-color: #10b981; }
+        .metric-border-purple { border-left-color: #8b5cf6; }
+
+        .bg-grid-dots {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 20px 20px;
+            opacity: 0.4;
+            z-index: 0;
+        }
+    </style>
+<style id="slide-selected-style">
+  [data-slide-selected]::before
+  /* [data-slide-hover-selected]::before */ {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    width: 100%;
+    height: 100%;
+    box-sizing: content-box;
+    padding: 4px;
+    border-radius: 0px;
+    outline: 2px solid #0f7fff !important;
+    z-index: 10000;
+    pointer-events: none;
+  }
+
+ /* [data-slide-hover-selected], */
+  [data-slide-selected] {
+    position: relative;
+    outline: none;
+    cursor: default;
+  }
+
+  img[data-slide-selected],
+  img[data-slide-hover-selected],
+  [data-slide-hover-selected],
+  [item-slide-click-selected],
+  [item-slide-selected] {
+    border: 2px solid #0f7fff !important;
+  }
+
+
+</style><style id="genspark-badge">
+    .genspark-badge-button {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background-color: #333;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .genspark-modal {
+      display: none;
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      z-index: 10000;
+      justify-content: end;
+    }
+    
+    .genspark-modal-content {
+      background-color: white;
+      border-radius: 8px;
+      max-width: 450px;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 20px;
+      position: relative;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      font-size: 14px;
+    }
+    @media (max-width: 768px) {
+      .genspark-modal-content {
+        max-width: 90%;
+      }
+    }
+    
+    .genspark-close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 20px;
+      cursor: pointer;
+      background: none;
+      border: none;
+    }
+    
+    .genspark-title {
+      margin-bottom: 8px;
+      font-weight: normal;
+      display: inline;
+      font-size: 14px;
+    }
+    
+    .genspark-report {
+      color: #909499;
+      text-decoration: underline;
+      cursor: pointer;
+      margin-bottom: 14px;
+      display: inline;
+    }
+    
+    .genspark-info {
+      margin: 25px 0;
+      color: #333;
+      font-size: 14px;
+    }
+    
+    .genspark-buttons {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .genspark-remove-btn {
+      background-color: #f5f5f5;
+      border: 1px solid #ddd;
+      color: #333;
+      padding: 4px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      flex: 1;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    
+    .genspark-go-btn {
+      background-color: #222;
+      border: none;
+      color: white;
+      padding: 4px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      flex: 1;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+  </style></head>
+<body style="">
+<div class="slide-container">
+<div class="header-accent"></div>
+<div class="bg-grid-dots"></div>
+<div class="content-wrapper">
+<!-- Header -->
+<div class="mb-8 relative z-10">
+<div class="flex items-center mb-2">
+<span class="bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-0.5 rounded uppercase tracking-wide mr-3">Validation Methodology</span>
+<p class="text-sm text-gray-500 font-medium">Measuring Success &amp; Impact</p>
+</div>
+<h1 class="font-serif text-4xl text-gray-900 font-bold">Evaluation Strategy</h1>
+</div>
+<!-- Content Grid -->
+<div class="flex-grow flex flex-col gap-6 relative z-10">
+<!-- Top Row: Metrics -->
+<div class="grid grid-cols-2 gap-8 h-3/5">
+<!-- Quantitative Card -->
+<div class="eval-card border-t-quant">
+<div class="flex items-center justify-between mb-2">
+<div class="card-header-icon bg-quant">
+<i class="fas fa-chart-bar"></i>
+</div>
+<span class="text-xs font-bold text-blue-500 uppercase tracking-widest">Performance</span>
+</div>
+<h3 class="text-xl font-bold text-gray-800 mb-6">Quantitative Metrics</h3>
+<div class="flex-grow flex flex-col justify-center space-y-3">
+<div class="metric-item metric-border-blue">
+<div class="metric-icon bg-metric-blue">
+<i class="fas fa-bullseye"></i>
+</div>
+<div>
+<p class="font-semibold text-gray-800 text-sm">Traceability Precision &amp; Recall</p>
+<p class="text-xs text-gray-500">Accuracy of link recovery algorithms</p>
+</div>
+</div>
+<div class="metric-item metric-border-blue">
+<div class="metric-icon bg-metric-blue">
+<i class="fas fa-stopwatch"></i>
+</div>
+<div>
+<p class="font-semibold text-gray-800 text-sm">Response Latency</p>
+<p class="text-xs text-gray-500">Time-to-explanation &lt; 200ms</p>
+</div>
+</div>
+<div class="metric-item metric-border-blue">
+<div class="metric-icon bg-metric-blue">
+<i class="fas fa-search-location"></i>
+</div>
+<div>
+<p class="font-semibold text-gray-800 text-sm">Context Retrieval Accuracy</p>
+<p class="text-xs text-gray-500">Relevance of RAG-fetched snippets</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Qualitative Card -->
+<div class="eval-card border-t-qual">
+<div class="flex items-center justify-between mb-2">
+<div class="card-header-icon bg-qual">
+<i class="fas fa-users-cog"></i>
+</div>
+<span class="text-xs font-bold text-green-600 uppercase tracking-widest">Human Factors</span>
+</div>
+<h3 class="text-xl font-bold text-gray-800 mb-6">Qualitative Evaluation</h3>
+<div class="flex-grow flex flex-col justify-center space-y-3">
+<div class="metric-item metric-border-green">
+<div class="metric-icon bg-metric-green">
+<i class="fas fa-hourglass-half"></i>
+</div>
+<div>
+<p class="font-semibold text-gray-800 text-sm">Developer Onboarding Time</p>
+<p class="text-xs text-gray-500">Reduction in time-to-first-commit</p>
+</div>
+</div>
+<div class="metric-item metric-border-green">
+<div class="metric-icon bg-metric-green">
+<i class="fas fa-brain"></i>
+</div>
+<div>
+<p class="font-semibold text-gray-800 text-sm">Cognitive Load Assessment</p>
+<p class="text-xs text-gray-500">Measured via NASA-TLX protocol</p>
+</div>
+</div>
+<div class="metric-item metric-border-green">
+<div class="metric-icon bg-metric-green">
+<i class="fas fa-smile"></i>
+</div>
+<div>
+<p class="font-semibold text-gray-800 text-sm">User Satisfaction Surveys</p>
+<p class="text-xs text-gray-500">Usability and trust scoring</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Row: Environment -->
+
+</div>
+<!-- Footer -->
+<div class="mt-4 pt-2 border-t border-gray-200 flex justify-between items-center text-xs text-gray-400 relative z-10">
+<p>M.Tech Dissertation Defense</p>
+<p>Slide 12</p>
+</div>
+</div>
+</div>
+
+<script defer="" src="./vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon="{&quot;rayId&quot;:&quot;9d54d6775e4f3d2c&quot;,&quot;serverTiming&quot;:{&quot;name&quot;:{&quot;cfExtPri&quot;:true,&quot;cfEdge&quot;:true,&quot;cfOrigin&quot;:true,&quot;cfL4&quot;:true,&quot;cfSpeedBrain&quot;:true,&quot;cfCacheStatus&quot;:true}},&quot;version&quot;:&quot;2025.9.1&quot;,&quot;token&quot;:&quot;4edd5f8ec12a48cfa682ab8261b80a79&quot;}" crossorigin="anonymous"></script>
+<script src="./slide-inner.js"></script>
+        <script id="html_badge_script2" src="./html_badge.js"></script>
+        </body></html>

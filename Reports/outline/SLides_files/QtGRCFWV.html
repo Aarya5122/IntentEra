@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<!-- saved from url=(0044)https://www.genspark.ai/api/files/s/QtGRCFWV -->
+<html lang="en" data-theme="light" style=""><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Plan of Work Timeline</title>
+<link href="./tailwind.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com/" rel="preconnect">
+<link href="./css2(1)" rel="stylesheet">
+<link href="./all(1).min.css" rel="stylesheet">
+<style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f3f4f6;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+        .slide-container {
+            width: 1280px;
+            height: 720px;
+            background-color: #ffffff;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .header-accent {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            background-color: #1e3a8a; /* Academic Navy Blue */
+            z-index: 10;
+        }
+        .content-wrapper {
+            padding: 48px 64px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            position: relative;
+            z-index: 5;
+        }
+        
+        /* Timeline Specific Styles */
+        .timeline-track {
+            position: absolute;
+            top: 55%;
+            left: 64px;
+            right: 64px;
+            height: 4px;
+            background-color: #e2e8f0;
+            transform: translateY(-50%);
+            z-index: 0;
+            border-radius: 2px;
+        }
+        
+        .timeline-node {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background-color: white;
+            border: 4px solid #94a3b8;
+            border-radius: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+            transition: all 0.3s ease;
+        }
+        
+        .timeline-card {
+            position: absolute;
+            width: 220px;
+            background-color: white;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            z-index: 10;
+        }
+        
+        .card-top {
+            bottom: calc(50% + 30px); /* Position above line */
+            transform: translateX(-50%);
+        }
+        
+        .card-bottom {
+            top: calc(50% + 30px); /* Position below line */
+            transform: translateX(-50%);
+        }
+        
+        .connector {
+            position: absolute;
+            width: 2px;
+            background-color: #cbd5e1;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1;
+        }
+        
+        .connector-top {
+            bottom: -30px;
+            height: 30px;
+        }
+        
+        .connector-bottom {
+            top: -30px;
+            height: 30px;
+        }
+
+        /* Milestone Specifics */
+        .milestone-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+        }
+
+        /* Phase Colors */
+        .phase-1-border { border-top: 4px solid #3b82f6; } /* Blue */
+        .phase-2-border { border-top: 4px solid #8b5cf6; } /* Purple */
+        .phase-3-border { border-top: 4px solid #0ea5e9; } /* Sky */
+        .phase-4-border { border-top: 4px solid #10b981; } /* Emerald */
+        .milestone-mid-border { border-top: 4px solid #f59e0b; } /* Amber */
+        .milestone-end-border { border-top: 4px solid #dc2626; } /* Red */
+
+        .bg-grid-dots {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 20px 20px;
+            opacity: 0.3;
+            z-index: -1;
+        }
+    </style>
+<style id="slide-selected-style">
+  [data-slide-selected]::before
+  /* [data-slide-hover-selected]::before */ {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    width: 100%;
+    height: 100%;
+    box-sizing: content-box;
+    padding: 4px;
+    border-radius: 0px;
+    outline: 2px solid #0f7fff !important;
+    z-index: 10000;
+    pointer-events: none;
+  }
+
+ /* [data-slide-hover-selected], */
+  [data-slide-selected] {
+    position: relative;
+    outline: none;
+    cursor: default;
+  }
+
+  img[data-slide-selected],
+  img[data-slide-hover-selected],
+  [data-slide-hover-selected],
+  [item-slide-click-selected],
+  [item-slide-selected] {
+    border: 2px solid #0f7fff !important;
+  }
+
+
+</style><style id="genspark-badge">
+    .genspark-badge-button {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background-color: #333;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .genspark-modal {
+      display: none;
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      z-index: 10000;
+      justify-content: end;
+    }
+    
+    .genspark-modal-content {
+      background-color: white;
+      border-radius: 8px;
+      max-width: 450px;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 20px;
+      position: relative;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      font-size: 14px;
+    }
+    @media (max-width: 768px) {
+      .genspark-modal-content {
+        max-width: 90%;
+      }
+    }
+    
+    .genspark-close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 20px;
+      cursor: pointer;
+      background: none;
+      border: none;
+    }
+    
+    .genspark-title {
+      margin-bottom: 8px;
+      font-weight: normal;
+      display: inline;
+      font-size: 14px;
+    }
+    
+    .genspark-report {
+      color: #909499;
+      text-decoration: underline;
+      cursor: pointer;
+      margin-bottom: 14px;
+      display: inline;
+    }
+    
+    .genspark-info {
+      margin: 25px 0;
+      color: #333;
+      font-size: 14px;
+    }
+    
+    .genspark-buttons {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .genspark-remove-btn {
+      background-color: #f5f5f5;
+      border: 1px solid #ddd;
+      color: #333;
+      padding: 4px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      flex: 1;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    
+    .genspark-go-btn {
+      background-color: #222;
+      border: none;
+      color: white;
+      padding: 4px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      flex: 1;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+  </style></head>
+<body style="">
+<div class="slide-container">
+<div class="header-accent"></div>
+<div class="bg-grid-dots"></div>
+<div class="content-wrapper">
+<!-- Header -->
+<div class="mb-2 relative z-10">
+<div class="flex items-center mb-2">
+<span class="bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-0.5 rounded uppercase tracking-wide mr-3">Project Roadmap</span>
+<p class="text-sm text-gray-500 font-medium">Jan 2026 — May 2026</p>
+</div>
+<h1 class="font-serif text-4xl text-gray-900 font-bold">Plan of Work Timeline</h1>
+</div>
+<!-- Timeline Area -->
+<div class="flex-grow relative w-full">
+<!-- Main Track -->
+<div class="timeline-track"></div>
+<!-- Phase 1: Jan-Feb -->
+<div class="absolute h-full w-0" style="left: 12%;">
+<div class="timeline-node border-blue-500"></div>
+<div class="timeline-card card-top phase-1-border">
+<div class="connector connector-top"></div>
+<div class="flex items-center justify-between mb-2">
+<span class="text-xs font-bold text-gray-400">PHASE 1</span>
+<i class="fas fa-book-reader text-blue-500 bg-blue-50 p-1.5 rounded"></i>
+</div>
+<h3 class="font-bold text-gray-800 text-sm mb-1">Literature &amp; Design</h3>
+<p class="text-xs text-gray-500 mb-2 font-medium">Jan — Feb 2026</p>
+<ul class="text-xs text-gray-600 space-y-1 pl-3 border-l-2 border-gray-100">
+<li>• Survey &amp; Analysis</li>
+<li>• Architecture Design</li>
+</ul>
+</div>
+</div>
+<!-- Phase 2: March -->
+<div class="absolute h-full w-0" style="left: 30%;">
+<div class="timeline-node border-purple-500"></div>
+<div class="timeline-card card-bottom phase-2-border">
+<div class="connector connector-bottom"></div>
+<div class="flex items-center justify-between mb-2">
+<span class="text-xs font-bold text-gray-400">PHASE 2</span>
+<i class="fas fa-cubes text-purple-500 bg-purple-50 p-1.5 rounded"></i>
+</div>
+<h3 class="font-bold text-gray-800 text-sm mb-1">Prototype I</h3>
+<p class="text-xs text-gray-500 mb-2 font-medium">March 2026</p>
+<ul class="text-xs text-gray-600 space-y-1 pl-3 border-l-2 border-gray-100">
+<li>• Artifact Integration</li>
+<li>• Metadata Extraction</li>
+<li>• Initial Traceability</li>
+</ul>
+</div>
+</div>
+<!-- Midterm Milestone -->
+<div class="absolute h-full w-0" style="left: 48%;">
+<div class="timeline-node border-yellow-500 bg-yellow-100 scale-125"></div>
+<div class="timeline-card card-top milestone-mid-border shadow-md" style="width: 180px;">
+<div class="connector connector-top"></div>
+<div class="milestone-badge bg-yellow-100 text-yellow-700">
+<i class="fas fa-flag mr-1"></i> Milestone
+                        </div>
+<h3 class="font-bold text-gray-800 text-sm mb-1">Midterm Submission</h3>
+<p class="text-xs text-gray-500 font-medium">March 2026</p>
+<p class="text-xs text-gray-400 mt-2 italic">Progress Review</p>
+</div>
+</div>
+<!-- Phase 3: April -->
+<div class="absolute h-full w-0" style="left: 65%;">
+<div class="timeline-node border-sky-500"></div>
+<div class="timeline-card card-bottom phase-3-border">
+<div class="connector connector-bottom"></div>
+<div class="flex items-center justify-between mb-2">
+<span class="text-xs font-bold text-gray-400">PHASE 3</span>
+<i class="fas fa-robot text-sky-500 bg-sky-50 p-1.5 rounded"></i>
+</div>
+<h3 class="font-bold text-gray-800 text-sm mb-1">Prototype II</h3>
+<p class="text-xs text-gray-500 mb-2 font-medium">April 2026</p>
+<ul class="text-xs text-gray-600 space-y-1 pl-3 border-l-2 border-gray-100">
+<li>• Agentic Reasoning</li>
+<li>• RAG Implementation</li>
+<li>• Chat Interface</li>
+</ul>
+</div>
+</div>
+<!-- Phase 4: Apr-May -->
+<div class="absolute h-full w-0" style="left: 82%;">
+<div class="timeline-node border-emerald-500"></div>
+<div class="timeline-card card-top phase-4-border">
+<div class="connector connector-top"></div>
+<div class="flex items-center justify-between mb-2">
+<span class="text-xs font-bold text-gray-400">PHASE 4</span>
+<i class="fas fa-clipboard-check text-emerald-500 bg-emerald-50 p-1.5 rounded"></i>
+</div>
+<h3 class="font-bold text-gray-800 text-sm mb-1">Testing &amp; Eval</h3>
+<p class="text-xs text-gray-500 mb-2 font-medium">Apr — May 2026</p>
+<ul class="text-xs text-gray-600 space-y-1 pl-3 border-l-2 border-gray-100">
+<li>• Validation on Repos</li>
+<li>• Onboarding Studies</li>
+<li>• Load Metrics</li>
+</ul>
+</div>
+</div>
+<!-- Final Submission -->
+<div class="absolute h-full w-0" style="left: 98%;">
+<div class="timeline-node border-red-600 bg-red-100 scale-125"></div>
+<div class="absolute top-1/2 transform -translate-y-1/2 -translate-x-full pr-6 flex items-center">
+<!-- Alternative placement for final node to avoid overflow -->
+</div>
+<!-- Final Card positioned to the left of the node -->
+<div class="timeline-card card-bottom milestone-end-border shadow-md" style="width: 180px; transform: translateX(-90%); top: calc(50% + 30px);">
+<div class="connector connector-bottom" style="left: 90%;"></div>
+<div class="milestone-badge bg-red-100 text-red-700">
+<i class="fas fa-trophy mr-1"></i> Final
+                        </div>
+<h3 class="font-bold text-gray-800 text-sm mb-1">Final Submission</h3>
+<p class="text-xs text-red-600 font-bold">12 May 2026</p>
+<p class="text-xs text-gray-400 mt-2 italic">Dissertation Defense</p>
+</div>
+</div>
+</div>
+<!-- Footer -->
+<div class="mt-4 pt-4 border-t border-gray-200 flex justify-between items-center text-xs text-gray-400 relative z-10">
+<p>M.Tech Dissertation</p>
+<p>Slide 11</p>
+</div>
+</div>
+</div>
+
+<script defer="" src="./vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon="{&quot;rayId&quot;:&quot;9d54d6775e4e3d2c&quot;,&quot;serverTiming&quot;:{&quot;name&quot;:{&quot;cfExtPri&quot;:true,&quot;cfEdge&quot;:true,&quot;cfOrigin&quot;:true,&quot;cfL4&quot;:true,&quot;cfSpeedBrain&quot;:true,&quot;cfCacheStatus&quot;:true}},&quot;version&quot;:&quot;2025.9.1&quot;,&quot;token&quot;:&quot;4edd5f8ec12a48cfa682ab8261b80a79&quot;}" crossorigin="anonymous"></script>
+<script src="./slide-inner.js"></script>
+        <script id="html_badge_script2" src="./html_badge.js"></script>
+        </body></html>

@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<!-- saved from url=(0044)https://www.genspark.ai/api/files/s/yyw8GyLi -->
+<html lang="en" data-theme="light" style=""><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Problem Statement: Intent Fragmentation</title>
+<link href="./tailwind.min.css" rel="stylesheet">
+<link href="./css2(1)" rel="stylesheet">
+<link href="./all(1).min.css" rel="stylesheet">
+<style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f3f4f6;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+        .slide-container {
+            width: 1280px;
+            height: 720px;
+            background-color: #ffffff;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .header-accent {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            background-color: #1e3a8a; /* Academic Navy Blue */
+            z-index: 10;
+        }
+        .content-wrapper {
+            padding: 48px 64px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        .section-card {
+            background-color: #f8fafc;
+            border-left: 4px solid #3b82f6;
+            border-radius: 4px;
+            padding: 16px 20px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .impact-card {
+            background-color: #eff6ff;
+            border-left: 4px solid #1e3a8a;
+        }
+        .icon-circle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            margin-right: 12px;
+        }
+    </style>
+<style id="slide-selected-style">
+  [data-slide-selected]::before
+  /* [data-slide-hover-selected]::before */ {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    width: 100%;
+    height: 100%;
+    box-sizing: content-box;
+    padding: 4px;
+    border-radius: 0px;
+    outline: 2px solid #0f7fff !important;
+    z-index: 10000;
+    pointer-events: none;
+  }
+
+ /* [data-slide-hover-selected], */
+  [data-slide-selected] {
+    position: relative;
+    outline: none;
+    cursor: default;
+  }
+
+  img[data-slide-selected],
+  img[data-slide-hover-selected],
+  [data-slide-hover-selected],
+  [item-slide-click-selected],
+  [item-slide-selected] {
+    border: 2px solid #0f7fff !important;
+  }
+
+
+</style><style id="genspark-badge">
+    .genspark-badge-button {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background-color: #333;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .genspark-modal {
+      display: none;
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      z-index: 10000;
+      justify-content: end;
+    }
+    
+    .genspark-modal-content {
+      background-color: white;
+      border-radius: 8px;
+      max-width: 450px;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 20px;
+      position: relative;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      font-size: 14px;
+    }
+    @media (max-width: 768px) {
+      .genspark-modal-content {
+        max-width: 90%;
+      }
+    }
+    
+    .genspark-close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 20px;
+      cursor: pointer;
+      background: none;
+      border: none;
+    }
+    
+    .genspark-title {
+      margin-bottom: 8px;
+      font-weight: normal;
+      display: inline;
+      font-size: 14px;
+    }
+    
+    .genspark-report {
+      color: #909499;
+      text-decoration: underline;
+      cursor: pointer;
+      margin-bottom: 14px;
+      display: inline;
+    }
+    
+    .genspark-info {
+      margin: 25px 0;
+      color: #333;
+      font-size: 14px;
+    }
+    
+    .genspark-buttons {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .genspark-remove-btn {
+      background-color: #f5f5f5;
+      border: 1px solid #ddd;
+      color: #333;
+      padding: 4px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      flex: 1;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    
+    .genspark-go-btn {
+      background-color: #222;
+      border: none;
+      color: white;
+      padding: 4px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      flex: 1;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+  </style></head>
+<body style="">
+<div class="slide-container">
+<div class="header-accent"></div>
+<div class="content-wrapper">
+<!-- Header -->
+<div class="mb-8">
+<div class="flex items-center mb-2">
+<span class="bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-0.5 rounded uppercase tracking-wide mr-3">Problem Statement</span>
+<p class="text-sm text-gray-500 font-medium">Why Developers Lose Context</p>
+</div>
+<h1 class="font-serif text-4xl text-gray-900 font-bold">Intent Fragmentation in Modern Software</h1>
+</div>
+<!-- Main Content Grid -->
+<div class="flex-grow grid grid-cols-12 gap-6">
+<!-- Left Column: Context & Reality -->
+<div class="col-span-4 flex flex-col gap-6">
+<div class="section-card">
+<div class="flex items-center mb-4">
+<div class="icon-circle bg-blue-100 text-blue-700">
+<i class="fas fa-server"></i>
+</div>
+<h2 class="text-lg font-bold text-gray-800">Enterprise Reality</h2>
+</div>
+<ul class="space-y-3 flex-grow">
+<li class="flex items-start text-sm text-gray-600">
+<i class="fas fa-check text-green-500 mt-1 mr-2 text-xs"></i>
+<span>Large-scale, cloud-native, rapidly evolving systems</span>
+</li>
+<li class="flex items-start text-sm text-gray-600">
+<i class="fas fa-check text-green-500 mt-1 mr-2 text-xs"></i>
+<span>Frequent commits, requirement changes, incident fixes</span>
+</li>
+<li class="flex items-start text-sm text-gray-600">
+<i class="fas fa-check text-green-500 mt-1 mr-2 text-xs"></i>
+<span>Distributed DevOps workflows across time zones</span>
+</li>
+</ul>
+</div>
+<div class="section-card border-red-400 bg-red-50">
+<div class="flex items-center mb-4">
+<div class="icon-circle bg-red-100 text-red-600">
+<i class="fas fa-exclamation-triangle"></i>
+</div>
+<h2 class="text-lg font-bold text-gray-800">Core Challenge</h2>
+</div>
+<div class="text-sm text-gray-700 flex flex-col gap-3 justify-center h-full">
+<div class="flex items-center p-2 bg-white rounded shadow-sm">
+<i class="fas fa-check-circle text-green-500 mr-3 text-lg"></i>
+<span class="font-medium">Developers understand <strong>WHAT</strong> code does</span>
+</div>
+<div class="flex items-center p-2 bg-white rounded shadow-sm border border-red-100">
+<i class="fas fa-times-circle text-red-500 mr-3 text-lg"></i>
+<span class="font-medium">Developers miss <strong>WHY</strong> it was implemented</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Middle Column: Root Cause Visualization -->
+<div class="col-span-4 flex flex-col">
+<div class="bg-white border border-gray-200 rounded-lg p-5 h-full flex flex-col items-center justify-center relative shadow-sm">
+<h2 class="text-lg font-bold text-gray-800 mb-6 text-center w-full border-b pb-2">Root Cause: Fragmented Rationale</h2>
+<div class="relative w-full h-64">
+<!-- Central Node -->
+<div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 text-center">
+<div class="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center shadow-lg border-4 border-white">
+<i class="fas fa-code-branch text-white text-3xl"></i>
+</div>
+<p class="text-xs font-bold mt-2 text-gray-800">Implementation</p>
+</div>
+<!-- Satellite Nodes -->
+<div class="absolute top-0 left-1/2 transform -translate-x-1/2 -mt-2 text-center">
+<div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-1 border border-blue-200">
+<i class="fab fa-jira text-blue-600"></i>
+</div>
+<p class="text-xs text-gray-500">JIRA / ITSM</p>
+</div>
+<div class="absolute bottom-0 left-1/2 transform -translate-x-1/2 mb-2 text-center">
+<div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-1 border border-green-200">
+<i class="fas fa-file-alt text-green-600"></i>
+</div>
+<p class="text-xs text-gray-500">Internal Docs</p>
+</div>
+<div class="absolute top-1/2 left-0 transform -translate-y-1/2 ml-2 text-center">
+<div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-1 border border-purple-200">
+<i class="fab fa-git-alt text-purple-600"></i>
+</div>
+<p class="text-xs text-gray-500">Commit History</p>
+</div>
+<div class="absolute top-1/2 right-0 transform -translate-y-1/2 mr-2 text-center">
+<div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-1 border border-orange-200">
+<i class="fas fa-comments text-orange-600"></i>
+</div>
+<p class="text-xs text-gray-500">PR Discussions</p>
+</div>
+<!-- Connecting Lines (Visual only, simple CSS borders) -->
+<div class="absolute top-1/2 left-1/2 w-full h-full transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+<svg height="100%" preserveAspectRatio="none" viewBox="0 0 300 300" width="100%">
+<line stroke="#cbd5e1" stroke-dasharray="4" stroke-width="2" x1="150" x2="150" y1="110" y2="40"></line>
+<line stroke="#cbd5e1" stroke-dasharray="4" stroke-width="2" x1="150" x2="150" y1="190" y2="260"></line>
+<line stroke="#cbd5e1" stroke-dasharray="4" stroke-width="2" x1="110" x2="40" y1="150" y2="150"></line>
+<line stroke="#cbd5e1" stroke-dasharray="4" stroke-width="2" x1="190" x2="260" y1="150" y2="150"></line>
+</svg>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Business Impact -->
+<div class="col-span-4">
+<div class="section-card impact-card">
+<div class="flex items-center mb-6">
+<div class="icon-circle bg-blue-800 text-white">
+<i class="fas fa-chart-line"></i>
+</div>
+<h2 class="text-lg font-bold text-gray-900">Business Impact</h2>
+</div>
+<div class="grid grid-cols-1 gap-4">
+<div class="flex items-center bg-white p-3 rounded shadow-sm">
+<div class="bg-red-100 p-2 rounded mr-3">
+<i class="fas fa-brain text-red-600"></i>
+</div>
+<div>
+<p class="font-bold text-gray-800 text-sm">High Cognitive Load</p>
+<p class="text-xs text-gray-500">Developers struggle to context switch</p>
+</div>
+</div>
+<div class="flex items-center bg-white p-3 rounded shadow-sm">
+<div class="bg-orange-100 p-2 rounded mr-3">
+<i class="fas fa-user-clock text-orange-600"></i>
+</div>
+<div>
+<p class="font-bold text-gray-800 text-sm">Slow Onboarding</p>
+<p class="text-xs text-gray-500">New joiners lack historical context</p>
+</div>
+</div>
+<div class="flex items-center bg-white p-3 rounded shadow-sm">
+<div class="bg-yellow-100 p-2 rounded mr-3">
+<i class="fas fa-bug text-yellow-600"></i>
+</div>
+<div>
+<p class="font-bold text-gray-800 text-sm">Difficult Defect Triaging</p>
+<p class="text-xs text-gray-500">Fixes often break original intent</p>
+</div>
+</div>
+<div class="flex items-center bg-white p-3 rounded shadow-sm">
+<div class="bg-gray-100 p-2 rounded mr-3">
+<i class="fas fa-trash-alt text-gray-600"></i>
+</div>
+<div>
+<p class="font-bold text-gray-800 text-sm">Knowledge Loss</p>
+<p class="text-xs text-gray-500">Implicit knowledge leaves with staff</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer -->
+<div class="mt-8 pt-4 border-t border-gray-200 flex justify-between items-center text-xs text-gray-400">
+<p>M.Tech Dissertation</p>
+<p>Slide 2</p>
+</div>
+</div>
+</div>
+
+<script defer="" src="./vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon="{&quot;rayId&quot;:&quot;9d54d6774e483d2c&quot;,&quot;serverTiming&quot;:{&quot;name&quot;:{&quot;cfExtPri&quot;:true,&quot;cfEdge&quot;:true,&quot;cfOrigin&quot;:true,&quot;cfL4&quot;:true,&quot;cfSpeedBrain&quot;:true,&quot;cfCacheStatus&quot;:true}},&quot;version&quot;:&quot;2025.9.1&quot;,&quot;token&quot;:&quot;4edd5f8ec12a48cfa682ab8261b80a79&quot;}" crossorigin="anonymous"></script>
+<script src="./slide-inner.js"></script>
+        <script id="html_badge_script2" src="./html_badge.js"></script>
+        </body></html>

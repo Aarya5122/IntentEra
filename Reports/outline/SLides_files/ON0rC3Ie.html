@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<!-- saved from url=(0044)https://www.genspark.ai/api/files/s/ON0rC3Ie -->
+<html lang="en" data-theme="light" style=""><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>System Architecture Overview</title>
+<link href="./tailwind.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com/" rel="preconnect">
+<link href="./css2(1)" rel="stylesheet">
+<link href="./all(1).min.css" rel="stylesheet">
+<style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f3f4f6;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+        .slide-container {
+            width: 1280px;
+            height: 720px;
+            background-color: #ffffff;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .header-accent {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            background-color: #1e3a8a; /* Academic Navy Blue */
+            z-index: 10;
+        }
+        .content-wrapper {
+            padding: 48px 64px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            position: relative;
+            z-index: 5;
+        }
+        .step-card {
+            display: flex;
+            flex-direction: column;
+            background-color: white;
+            border-radius: 12px;
+            padding: 24px 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            border: 1px solid #e5e7eb;
+            height: 100%;
+            position: relative;
+        }
+        .step-number {
+            font-family: 'Playfair Display', serif;
+            font-size: 4rem;
+            line-height: 1;
+            font-weight: 700;
+            color: #f1f5f9;
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            z-index: 0;
+        }
+        .step-icon-container {
+            width: 56px;
+            height: 56px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+            position: relative;
+            z-index: 10;
+        }
+        .connector-arrow {
+            position: absolute;
+            top: 50%;
+            right: -24px;
+            transform: translateY(-50%);
+            color: #cbd5e1;
+            font-size: 1.5rem;
+            z-index: 20;
+        }
+        .bg-grid-pattern {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+            background-size: 24px 24px;
+            opacity: 0.5;
+            z-index: 0;
+        }
+        /* Specific Card Styles */
+        .card-1 { border-top: 4px solid #3b82f6; }
+        .card-2 { border-top: 4px solid #8b5cf6; }
+        .card-3 { border-top: 4px solid #10b981; }
+        .card-4 { border-top: 4px solid #f59e0b; }
+
+        .icon-bg-1 { background-color: #eff6ff; color: #3b82f6; }
+        .icon-bg-2 { background-color: #f5f3ff; color: #8b5cf6; }
+        .icon-bg-3 { background-color: #ecfdf5; color: #10b981; }
+        .icon-bg-4 { background-color: #fffbeb; color: #f59e0b; }
+    </style>
+<style id="slide-selected-style">
+  [data-slide-selected]::before
+  /* [data-slide-hover-selected]::before */ {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    width: 100%;
+    height: 100%;
+    box-sizing: content-box;
+    padding: 4px;
+    border-radius: 0px;
+    outline: 2px solid #0f7fff !important;
+    z-index: 10000;
+    pointer-events: none;
+  }
+
+ /* [data-slide-hover-selected], */
+  [data-slide-selected] {
+    position: relative;
+    outline: none;
+    cursor: default;
+  }
+
+  img[data-slide-selected],
+  img[data-slide-hover-selected],
+  [data-slide-hover-selected],
+  [item-slide-click-selected],
+  [item-slide-selected] {
+    border: 2px solid #0f7fff !important;
+  }
+
+
+</style><style id="genspark-badge">
+    .genspark-badge-button {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background-color: #333;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .genspark-modal {
+      display: none;
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      z-index: 10000;
+      justify-content: end;
+    }
+    
+    .genspark-modal-content {
+      background-color: white;
+      border-radius: 8px;
+      max-width: 450px;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 20px;
+      position: relative;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      font-size: 14px;
+    }
+    @media (max-width: 768px) {
+      .genspark-modal-content {
+        max-width: 90%;
+      }
+    }
+    
+    .genspark-close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 20px;
+      cursor: pointer;
+      background: none;
+      border: none;
+    }
+    
+    .genspark-title {
+      margin-bottom: 8px;
+      font-weight: normal;
+      display: inline;
+      font-size: 14px;
+    }
+    
+    .genspark-report {
+      color: #909499;
+      text-decoration: underline;
+      cursor: pointer;
+      margin-bottom: 14px;
+      display: inline;
+    }
+    
+    .genspark-info {
+      margin: 25px 0;
+      color: #333;
+      font-size: 14px;
+    }
+    
+    .genspark-buttons {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .genspark-remove-btn {
+      background-color: #f5f5f5;
+      border: 1px solid #ddd;
+      color: #333;
+      padding: 4px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      flex: 1;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    
+    .genspark-go-btn {
+      background-color: #222;
+      border: none;
+      color: white;
+      padding: 4px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      flex: 1;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+  </style></head>
+<body style="">
+<div class="slide-container">
+<div class="header-accent"></div>
+<div class="bg-grid-pattern"></div>
+<div class="content-wrapper">
+<!-- Header -->
+<div class="mb-10 relative z-10">
+<div class="flex items-center mb-2">
+<span class="bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-0.5 rounded uppercase tracking-wide mr-3">System Architecture</span>
+<p class="text-sm text-gray-500 font-medium">Four-Layer Design Overview</p>
+</div>
+<h1 class="font-serif text-4xl text-gray-900 font-bold">Integrated Semantic Pipeline</h1>
+</div>
+<!-- Main Process Flow -->
+<div class="flex-grow grid grid-cols-4 gap-8 relative z-10">
+<!-- Step 1: Artifact Integration -->
+<div class="relative h-full">
+<div class="step-card card-1">
+<div class="step-number">01</div>
+<div class="step-icon-container icon-bg-1">
+<i class="fas fa-layer-group text-2xl"></i>
+</div>
+<h3 class="text-lg font-bold text-gray-800 mb-4 z-10 relative">Artifact Integration<br>Layer</h3>
+<ul class="space-y-3 z-10 relative">
+<li class="flex items-start text-sm text-gray-600">
+<i class="fas fa-check text-blue-500 mt-1 mr-2 text-xs"></i>
+<span>Extract tickets, commits, &amp; PR discussions</span>
+</li>
+<li class="flex items-start text-sm text-gray-600">
+<i class="fas fa-check text-blue-500 mt-1 mr-2 text-xs"></i>
+<span>Normalize heterogeneous artifacts</span>
+</li>
+<li class="flex items-start text-sm text-gray-600">
+<i class="fas fa-check text-blue-500 mt-1 mr-2 text-xs"></i>
+<span>Metadata &amp; dependency mapping</span>
+</li>
+</ul>
+</div>
+<!-- Connector -->
+<div class="connector-arrow">
+<i class="fas fa-chevron-right"></i>
+</div>
+</div>
+<!-- Step 2: Semantic Processing -->
+<div class="relative h-full">
+<div class="step-card card-2">
+<div class="step-number">02</div>
+<div class="step-icon-container icon-bg-2">
+<i class="fas fa-microchip text-2xl"></i>
+</div>
+<h3 class="text-lg font-bold text-gray-800 mb-4 z-10 relative">Semantic Processing<br>Layer</h3>
+<ul class="space-y-3 z-10 relative">
+<li class="flex items-start text-sm text-gray-600">
+<i class="fas fa-check text-purple-500 mt-1 mr-2 text-xs"></i>
+<span>NLP preprocessing of requirements</span>
+</li>
+<li class="flex items-start text-sm text-gray-600">
+<i class="fas fa-check text-purple-500 mt-1 mr-2 text-xs"></i>
+<span>Code embedding &amp; structural parsing</span>
+</li>
+<li class="flex items-start text-sm text-gray-600">
+<i class="fas fa-check text-purple-500 mt-1 mr-2 text-xs"></i>
+<span>Context indexing</span>
+</li>
+</ul>
+</div>
+<!-- Connector -->
+<div class="connector-arrow">
+<i class="fas fa-chevron-right"></i>
+</div>
+</div>
+<!-- Step 3: Agentic AI Reasoning -->
+<div class="relative h-full">
+<div class="step-card card-3">
+<div class="step-number">03</div>
+<div class="step-icon-container icon-bg-3">
+<i class="fas fa-brain text-2xl"></i>
+</div>
+<h3 class="text-lg font-bold text-gray-800 mb-4 z-10 relative">Agentic AI Reasoning<br>Module</h3>
+<ul class="space-y-3 z-10 relative">
+<li class="flex items-start text-sm text-gray-600">
+<i class="fas fa-check text-green-500 mt-1 mr-2 text-xs"></i>
+<span>Retrieval-Augmented Generation (RAG)</span>
+</li>
+<li class="flex items-start text-sm text-gray-600">
+<i class="fas fa-check text-green-500 mt-1 mr-2 text-xs"></i>
+<span>Multi-agent contextual reasoning</span>
+</li>
+<li class="flex items-start text-sm text-gray-600">
+<i class="fas fa-check text-green-500 mt-1 mr-2 text-xs"></i>
+<span>Conversational explanation synthesis</span>
+</li>
+</ul>
+</div>
+<!-- Connector -->
+<div class="connector-arrow">
+<i class="fas fa-chevron-right"></i>
+</div>
+</div>
+<!-- Step 4: Cloud Deployment -->
+<div class="relative h-full">
+<div class="step-card card-4">
+<div class="step-number">04</div>
+<div class="step-icon-container icon-bg-4">
+<i class="fas fa-cloud-upload-alt text-2xl"></i>
+</div>
+<h3 class="text-lg font-bold text-gray-800 mb-4 z-10 relative">Cloud Deployment<br>&amp; Integration</h3>
+<ul class="space-y-3 z-10 relative">
+<li class="flex items-start text-sm text-gray-600">
+<i class="fas fa-check text-yellow-500 mt-1 mr-2 text-xs"></i>
+<span>Scalable cloud hosting infrastructure</span>
+</li>
+<li class="flex items-start text-sm text-gray-600">
+<i class="fas fa-check text-yellow-500 mt-1 mr-2 text-xs"></i>
+<span>IDE integration (VS Code Plugin)</span>
+</li>
+<li class="flex items-start text-sm text-gray-600">
+<i class="fas fa-check text-yellow-500 mt-1 mr-2 text-xs"></i>
+<span>Real-time developer interaction</span>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<!-- Footer -->
+<div class="mt-8 pt-4 border-t border-gray-200 flex justify-between items-center text-xs text-gray-400 relative z-10">
+<p>M.Tech Dissertation</p>
+<p>Slide 6</p>
+</div>
+</div>
+</div>
+
+<script defer="" src="./vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon="{&quot;rayId&quot;:&quot;9d54d6774e3e3d2c&quot;,&quot;serverTiming&quot;:{&quot;name&quot;:{&quot;cfExtPri&quot;:true,&quot;cfEdge&quot;:true,&quot;cfOrigin&quot;:true,&quot;cfL4&quot;:true,&quot;cfSpeedBrain&quot;:true,&quot;cfCacheStatus&quot;:true}},&quot;version&quot;:&quot;2025.9.1&quot;,&quot;token&quot;:&quot;4edd5f8ec12a48cfa682ab8261b80a79&quot;}" crossorigin="anonymous"></script>
+<script src="./slide-inner.js"></script>
+        <script id="html_badge_script2" src="./html_badge.js"></script>
+        </body></html>

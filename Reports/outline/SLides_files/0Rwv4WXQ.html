@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<!-- saved from url=(0044)https://www.genspark.ai/api/files/s/0Rwv4WXQ -->
+<html lang="en" data-theme="light" style=""><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Expected Impact</title>
+<link href="./tailwind.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com/" rel="preconnect">
+<link href="./css2(1)" rel="stylesheet">
+<link href="./all(1).min.css" rel="stylesheet">
+<style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f3f4f6;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+        .slide-container {
+            width: 1280px;
+            height: 720px;
+            background-color: #ffffff;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .header-accent {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            background-color: #1e3a8a; /* Academic Navy Blue */
+            z-index: 10;
+        }
+        .content-wrapper {
+            padding: 48px 64px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            position: relative;
+            z-index: 5;
+        }
+        
+        /* Background Pattern */
+        .bg-pattern {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #f8fafc;
+            background-image: 
+                radial-gradient(#e2e8f0 1.5px, transparent 1.5px),
+                radial-gradient(#e2e8f0 1.5px, transparent 1.5px);
+            background-size: 30px 30px;
+            background-position: 0 0, 15px 15px;
+            opacity: 0.5;
+            z-index: 0;
+        }
+        
+        .impact-card {
+            background: white;
+            border-radius: 12px;
+            padding: 32px 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            border: 1px solid #e5e7eb;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            position: relative;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .impact-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.1), 0 8px 8px -6px rgba(0, 0, 0, 0.05);
+        }
+        
+        /* Card Accents */
+        .card-tech { border-top: 6px solid #2563eb; }
+        .card-prac { border-top: 6px solid #059669; }
+        .card-res { border-top: 6px solid #7c3aed; }
+        
+        .icon-circle {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            font-size: 28px;
+            position: relative;
+            z-index: 10;
+        }
+        
+        /* Icon Colors */
+        .icon-tech { background-color: #eff6ff; color: #2563eb; }
+        .icon-prac { background-color: #ecfdf5; color: #059669; }
+        .icon-res { background-color: #f5f3ff; color: #7c3aed; }
+        
+        /* Subtle numbering behind icon */
+        .bg-number {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            font-family: 'Playfair Display', serif;
+            font-size: 5rem;
+            color: #f1f5f9;
+            opacity: 0.5;
+            z-index: 0;
+            line-height: 1;
+            font-weight: 700;
+        }
+
+        .list-item {
+            display: flex;
+            align-items: start;
+            margin-bottom: 16px;
+        }
+        
+        .check-icon {
+            margin-top: 4px;
+            margin-right: 12px;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+    </style>
+<style id="slide-selected-style">
+  [data-slide-selected]::before
+  /* [data-slide-hover-selected]::before */ {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    width: 100%;
+    height: 100%;
+    box-sizing: content-box;
+    padding: 4px;
+    border-radius: 0px;
+    outline: 2px solid #0f7fff !important;
+    z-index: 10000;
+    pointer-events: none;
+  }
+
+ /* [data-slide-hover-selected], */
+  [data-slide-selected] {
+    position: relative;
+    outline: none;
+    cursor: default;
+  }
+
+  img[data-slide-selected],
+  img[data-slide-hover-selected],
+  [data-slide-hover-selected],
+  [item-slide-click-selected],
+  [item-slide-selected] {
+    border: 2px solid #0f7fff !important;
+  }
+
+
+</style><style id="genspark-badge">
+    .genspark-badge-button {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background-color: #333;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .genspark-modal {
+      display: none;
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      z-index: 10000;
+      justify-content: end;
+    }
+    
+    .genspark-modal-content {
+      background-color: white;
+      border-radius: 8px;
+      max-width: 450px;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 20px;
+      position: relative;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      font-size: 14px;
+    }
+    @media (max-width: 768px) {
+      .genspark-modal-content {
+        max-width: 90%;
+      }
+    }
+    
+    .genspark-close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 20px;
+      cursor: pointer;
+      background: none;
+      border: none;
+    }
+    
+    .genspark-title {
+      margin-bottom: 8px;
+      font-weight: normal;
+      display: inline;
+      font-size: 14px;
+    }
+    
+    .genspark-report {
+      color: #909499;
+      text-decoration: underline;
+      cursor: pointer;
+      margin-bottom: 14px;
+      display: inline;
+    }
+    
+    .genspark-info {
+      margin: 25px 0;
+      color: #333;
+      font-size: 14px;
+    }
+    
+    .genspark-buttons {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .genspark-remove-btn {
+      background-color: #f5f5f5;
+      border: 1px solid #ddd;
+      color: #333;
+      padding: 4px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      flex: 1;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    
+    .genspark-go-btn {
+      background-color: #222;
+      border: none;
+      color: white;
+      padding: 4px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      flex: 1;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+  </style></head>
+<body style="">
+<div class="slide-container">
+<div class="header-accent"></div>
+<div class="bg-pattern"></div>
+<div class="content-wrapper">
+<!-- Header -->
+<div class="mb-10 relative z-10">
+<div class="flex items-center mb-2">
+<span class="bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-0.5 rounded uppercase tracking-wide mr-3">Dissertation Value</span>
+<p class="text-sm text-gray-500 font-medium">Outcomes &amp; Significance</p>
+</div>
+<h1 class="font-serif text-4xl text-gray-900 font-bold">Expected Impact</h1>
+</div>
+<!-- Main Content Grid -->
+<div class="flex-grow grid grid-cols-3 gap-8 relative z-10">
+<!-- Card 1: Technical Contributions -->
+<div class="impact-card card-tech">
+<div class="bg-number">01</div>
+<div class="icon-circle icon-tech">
+<i class="fas fa-microchip"></i>
+</div>
+<h3 class="text-xl font-bold text-gray-800 mb-2">Technical Contributions</h3>
+<p class="text-xs text-blue-600 font-semibold uppercase tracking-wider mb-6">Architecture &amp; AI</p>
+<div class="flex-grow">
+<div class="list-item">
+<i class="fas fa-check-circle check-icon text-blue-500"></i>
+<p class="text-sm text-gray-600 leading-relaxed"><strong>Automated Intent Reconstruction</strong> using novel semantic parsing of heterogeneous artifacts.</p>
+</div>
+<div class="list-item">
+<i class="fas fa-check-circle check-icon text-blue-500"></i>
+<p class="text-sm text-gray-600 leading-relaxed"><strong>Cloud-Hosted Assistant</strong> that integrates directly into developer IDEs for real-time support.</p>
+</div>
+<div class="list-item">
+<i class="fas fa-check-circle check-icon text-blue-500"></i>
+<p class="text-sm text-gray-600 leading-relaxed"><strong>Multi-Agent Reasoning</strong> applied specifically to the Software Engineering domain.</p>
+</div>
+</div>
+</div>
+<!-- Card 2: Practical Contributions -->
+<div class="impact-card card-prac">
+<div class="bg-number">02</div>
+<div class="icon-circle icon-prac">
+<i class="fas fa-chart-line"></i>
+</div>
+<h3 class="text-xl font-bold text-gray-800 mb-2">Practical Contributions</h3>
+<p class="text-xs text-green-600 font-semibold uppercase tracking-wider mb-6">Workflow Optimization</p>
+<div class="flex-grow">
+<div class="list-item">
+<i class="fas fa-check-circle check-icon text-green-500"></i>
+<p class="text-sm text-gray-600 leading-relaxed"><strong>Faster Onboarding</strong> for new developers by providing instant historical context.</p>
+</div>
+<div class="list-item">
+<i class="fas fa-check-circle check-icon text-green-500"></i>
+<p class="text-sm text-gray-600 leading-relaxed"><strong>Reduced Cognitive Load</strong> by automating the search for "why" code exists.</p>
+</div>
+<div class="list-item">
+<i class="fas fa-check-circle check-icon text-green-500"></i>
+<p class="text-sm text-gray-600 leading-relaxed"><strong>Enhanced Defect Triaging</strong> through rapid correlation of incidents to original requirements.</p>
+</div>
+</div>
+</div>
+<!-- Card 3: Research Significance -->
+<div class="impact-card card-res">
+<div class="bg-number">03</div>
+<div class="icon-circle icon-res">
+<i class="fas fa-university"></i>
+</div>
+<h3 class="text-xl font-bold text-gray-800 mb-2">Research Significance</h3>
+<p class="text-xs text-purple-600 font-semibold uppercase tracking-wider mb-6">Academic &amp; Industrial</p>
+<div class="flex-grow">
+<div class="list-item">
+<i class="fas fa-check-circle check-icon text-purple-500"></i>
+<p class="text-sm text-gray-600 leading-relaxed"><strong>Interdisciplinary Bridge</strong> connecting Agentic AI, Cloud Computing, and Software Engineering.</p>
+</div>
+<div class="list-item">
+<i class="fas fa-check-circle check-icon text-purple-500"></i>
+<p class="text-sm text-gray-600 leading-relaxed"><strong>Strong Industrial Relevance</strong> addressing critical pain points in modern DevOps.</p>
+</div>
+<div class="list-item">
+<i class="fas fa-check-circle check-icon text-purple-500"></i>
+<p class="text-sm text-gray-600 leading-relaxed"><strong>High Publication Potential</strong> in top-tier software engineering conferences.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer -->
+<div class="mt-8 pt-4 border-t border-gray-200 flex justify-between items-center text-xs text-gray-400 relative z-10">
+<p>M.Tech Dissertation</p>
+<p>Slide 13</p>
+</div>
+</div>
+</div>
+
+<script defer="" src="./vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon="{&quot;rayId&quot;:&quot;9d54d6774e413d2c&quot;,&quot;serverTiming&quot;:{&quot;name&quot;:{&quot;cfExtPri&quot;:true,&quot;cfEdge&quot;:true,&quot;cfOrigin&quot;:true,&quot;cfL4&quot;:true,&quot;cfSpeedBrain&quot;:true,&quot;cfCacheStatus&quot;:true}},&quot;version&quot;:&quot;2025.9.1&quot;,&quot;token&quot;:&quot;4edd5f8ec12a48cfa682ab8261b80a79&quot;}" crossorigin="anonymous"></script>
+<script src="./slide-inner.js"></script>
+        <script id="html_badge_script2" src="./html_badge.js"></script>
+        </body></html>
