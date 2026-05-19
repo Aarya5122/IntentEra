@@ -37,7 +37,7 @@ from diagrams import node, arrow, lane, layer_band
 # Deck scaffolding
 # ---------------------------------------------------------
 
-TOTAL_SLIDES = 32
+TOTAL_SLIDES = 33
 OUT = Path(__file__).parent.parent / "Final_Presentation_2024MT03013.pptx"
 
 
@@ -1477,11 +1477,70 @@ def slide_retrieval_quality(prs):
 
 
 # ---------------------------------------------------------
-# 27 — Latency & cost dashboard
+# 27 — Explainability (closing the reviewer loop)
+# ---------------------------------------------------------
+
+def slide_explainability(prs):
+    s = content_slide(prs, 27, "Evaluation · Explainability")
+    add_title(s, "From grounded citations to per-claim accountability",
+              eyebrow="Closing the explainability loop")
+
+    # Top row: 3 mechanism cards (same geometry as slide 26)
+    cw = Inches(3.85)
+    ch = Inches(1.85)
+    gap = Inches(0.27)
+    sx = (SLIDE_W - 3 * cw - 2 * gap) // 2
+    sy = Inches(1.95)
+    add_metric_card(s, sx, sy, cw, ch,
+                    value="hits / K",
+                    label="Per-citation confidence",
+                    sublabel="Surface the per-query hit count the max-pool "
+                             "retriever already computes — render it next "
+                             "to every citation chip in the IDE chat panel.",
+                    accent=CYAN)
+    add_metric_card(s, sx + cw + gap, sy, cw, ch,
+                    value="cos-Δ",
+                    label="Post-hoc faithfulness probe",
+                    sublabel="cos(answer, retrieved-context) vs. cos(answer, "
+                             "random-chunk). Flag answers below the gap "
+                             "threshold for human review before they ship.",
+                    accent=VIOLET)
+    add_metric_card(s, sx + 2 * (cw + gap), sy, cw, ch,
+                    value="−1 cite",
+                    label="Counterfactual citation test",
+                    sublabel="Re-run the chat with the top-1 cited artifact "
+                             "removed. If the answer is unchanged, mark "
+                             "that citation non-load-bearing in the UI.",
+                    accent=AMBER)
+
+    # Bottom: scope panel — what we explain, what we don't
+    add_panel(s, Inches(0.6), Inches(4.05), Inches(12.1), Inches(2.7),
+              fill=PANEL, border=PANEL_EDGE, corner=0.08)
+    add_text(s, Inches(0.85), Inches(4.20), Inches(11.6), Inches(0.34),
+             "WHAT INTENTERA EXPLAINS — AND WHAT IT DOESN'T",
+             size=11, color=AMBER, font=FONT_HEAD, bold=True, spacing=200)
+    add_text(s, Inches(0.85), Inches(4.55), Inches(11.6), Inches(0.85),
+             "Retrieval-level explainability today; "
+             "mechanistic attribution as future work.",
+             size=18, color=TEXT, font=FONT_HEAD, bold=True)
+    add_text(s, Inches(0.85), Inches(5.20), Inches(11.6), Inches(1.5),
+             "IntentEra explains which artifacts grounded an answer — "
+             "citations, per-citation confidence, and counterfactual "
+             "sensitivity — making every claim auditable in one click. "
+             "It does not (yet) explain the LLM's internal reasoning: "
+             "token-level attribution and mechanistic interpretability "
+             "remain out of scope for this dissertation and are listed "
+             "in future work as direction 02.",
+             size=12, color=TEXT_DIM, font=FONT_BODY, italic=True,
+             line_spacing=1.40)
+
+
+# ---------------------------------------------------------
+# 28 — Latency & cost dashboard
 # ---------------------------------------------------------
 
 def slide_latency_cost(prs):
-    s = content_slide(prs, 27, "Evaluation · Ch 5.10 + 8.3")
+    s = content_slide(prs, 28, "Evaluation · Ch 5.10 + 8.3")
     add_title(s, "Latency and cost — viable for a small team",
               eyebrow="Operational economics")
 
@@ -1531,7 +1590,7 @@ def slide_latency_cost(prs):
 
 
 # ---------------------------------------------------------
-# 28 — Section: What's next
+# 29 — Section: What's next
 # ---------------------------------------------------------
 
 def slide_section_future(prs):
@@ -1540,15 +1599,15 @@ def slide_section_future(prs):
                       eyebrow="Section 06  ·  Chapters 9 & 10",
                       title="What's Next.",
                       subtitle="Honest limitations, what we shipped, and where the framework goes from here.")
-    add_footer(s, 28, TOTAL_SLIDES, "What's Next")
+    add_footer(s, 29, TOTAL_SLIDES, "What's Next")
 
 
 # ---------------------------------------------------------
-# 29 — Challenges & limitations
+# 30 — Challenges & limitations
 # ---------------------------------------------------------
 
 def slide_challenges(prs):
-    s = content_slide(prs, 29, "Limitations · Ch 9")
+    s = content_slide(prs, 30, "Limitations · Ch 9")
     add_title(s, "Challenges and limitations — documented honestly",
               eyebrow="Where the system struggles, and how we mitigate")
 
@@ -1610,11 +1669,11 @@ def slide_challenges(prs):
 
 
 # ---------------------------------------------------------
-# 30 — Current improvements (already shipped)
+# 31 — Current improvements (already shipped)
 # ---------------------------------------------------------
 
 def slide_current_improvements(prs):
-    s = content_slide(prs, 30, "Improvements · already shipped")
+    s = content_slide(prs, 31, "Improvements · already shipped")
     add_title(s, "What's improved since the midterm — already in production",
               eyebrow="Current improvements")
 
@@ -1683,11 +1742,11 @@ def slide_current_improvements(prs):
 
 
 # ---------------------------------------------------------
-# 31 — Future work (5 directions)
+# 32 — Future work (5 directions)
 # ---------------------------------------------------------
 
 def slide_future_work(prs):
-    s = content_slide(prs, 31, "Future Work · Ch 10.4")
+    s = content_slide(prs, 32, "Future Work · Ch 10.4")
     add_title(s, "Five directions worth pursuing next",
               eyebrow="Future work")
 
@@ -1697,9 +1756,10 @@ def slide_future_work(prs):
          "answer questions that depend on cross-file structure, not only "
          "textual similarity.",
          CYAN),
-        ("02", "Explainable per-citation Confidence",
-         "Surface the per-query hit counts already computed by the "
-         "retriever — let developers calibrate trust per cited artifact.",
+        ("02", "Mechanistic / Token-Level Attribution",
+         "Move beyond retrieval-level explainability — surface which "
+         "input tokens supported each clause of the generated answer, "
+         "using attention-rollout or gradient-based attribution methods.",
          INDIGO),
         ("03", "Regression-Test Suggestion Agent",
          "Extension of the Validation/Test agent — propose specific tests "
@@ -1756,13 +1816,13 @@ def slide_future_work(prs):
 
 
 # ---------------------------------------------------------
-# 32 — Conclusion + Q&A / Thank you
+# 33 — Conclusion + Q&A / Thank you
 # ---------------------------------------------------------
 
 def slide_conclusion(prs):
     s = blank(prs)
     add_background(s, "title")
-    add_footer(s, 32, TOTAL_SLIDES, "Conclusion")
+    add_footer(s, 33, TOTAL_SLIDES, "Conclusion")
 
     # decorative rings (top-right)
     for size_in, color in [(7.0, INDIGO), (4.8, VIOLET), (3.0, CYAN)]:
@@ -1870,13 +1930,14 @@ def main():
     slide_e2e_sequence(prs)
     slide_aws_topology(prs)
 
-    # 24 – 27
+    # 24 – 28
     slide_section_eval(prs)
     slide_functional_verification(prs)
     slide_retrieval_quality(prs)
+    slide_explainability(prs)
     slide_latency_cost(prs)
 
-    # 28 – 32
+    # 29 – 33
     slide_section_future(prs)
     slide_challenges(prs)
     slide_current_improvements(prs)
